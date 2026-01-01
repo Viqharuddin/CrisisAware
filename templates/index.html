@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="hero">
+    <h1>Welcome to CrisesAware India</h1>
+    <p>Interactive  monitoring, volunteer network, early alerts, and safety resources.</p>
+    <div class="hero-buttons">
+        <a href="{{ url_for('map') }}" class="btn">Emergency Map</a>
+        <a href="{{ url_for('alerts') }}" class="btn btn-outline">View Alerts</a>
+    </div>
+</section>
+
+<section class="features">
+    <div class="feature-card">
+        <i class="fas fa-map-marked-alt"></i>
+        <h3>Interactive Map</h3>
+        <p>Real-time  alerts, emergency services, evacuation routes visualized live.</p>
+    </div>
+
+    <div class="feature-card">
+        <i class="fas fa-bell"></i>
+        <h3>Early Warnings</h3>
+        <p>Receive timely  warnings based on geographic location and conditions.</p>
+    </div>
+
+    <div class="feature-card">
+        <i class="fas fa-hands-helping"></i>
+        <h3>Volunteer Network</h3>
+        <p>Contribute during emergencies by joining our organized volunteer system.</p>
+    </div>
+
+    <div class="feature-card">
+        <i class="fas fa-robot"></i>
+        <h3>AI Assistant</h3>
+        <p>Get instant safety advice and info from our smart chatbot.</p>
+    </div>
+</section>
+{% endblock %}

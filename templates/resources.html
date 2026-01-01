@@ -1,0 +1,81 @@
+<!-- templates/resources.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 2rem auto; padding: 0 2rem;">
+    <h1>Disaster Preparedness Resources</h1>
+    
+    <div class="features-container" style="margin-top: 2rem;">
+        <div class="feature-card">
+            <h3>Before a Flood</h3>
+            <ul>
+                <li>Know your area's flood risk</li>
+                <li>Elevate critical utilities</li>
+                <li>Create a communication plan</li>
+                <li>Prepare an emergency kit</li>
+                <li>Sign up for alert systems</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>During a Flood</h3>
+            <ul>
+                <li>Move to higher ground immediately</li>
+                <li>Avoid walking through moving water</li>
+                <li>Do not drive in flooded areas</li>
+                <li>Stay tuned to emergency alerts</li>
+                <li>Follow evacuation orders</li>
+            </ul>
+        </div>
+        
+        <div class="feature-card">
+            <h3>After a Flood</h3>
+            <ul>
+                <li>Return home only when officials say it's safe</li>
+                <li>Avoid standing water</li>
+                <li>Inspect your home for damage</li>
+                <li>Document damage for insurance</li>
+                <li>Clean and disinfect everything</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div style="margin-top: 3rem;">
+        <h2>Emergency Kit Checklist</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 1rem;">
+            <div>
+                <h3>Essential Supplies</h3>
+                <ul>
+                    <li>Water (1 gallon per person per day)</li>
+                    <li>Non-perishable food (3-day supply)</li>
+                    <li>Manual can opener</li>
+                    <li>First aid kit</li>
+                    <li>Flashlight with extra batteries</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3>Important Documents</h3>
+                <ul>
+                    <li>Personal identification</li>
+                    <li>Insurance policies</li>
+                    <li>Bank account records</li>
+                    <li>Emergency contact list</li>
+                    <li>Map of your area</li>
+                </ul>
+            </div>
+            
+            <div>
+                <h3>Additional Items</h3>
+                <ul>
+                    <li>Prescription medications</li>
+                    <li>Sanitation supplies</li>
+                    <li>Multi-tool</li>
+                    <li>Cell phone with charger</li>
+                    <li>Cash in small denominations</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

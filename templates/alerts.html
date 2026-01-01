@@ -1,0 +1,30 @@
+<!-- templates/alerts.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="alert-container">
+    <h1>Current Alerts</h1>
+    
+    {% if alerts %}
+        {% for alert in alerts %}
+        <div class="alert-card {{ alert.severity }}">
+            <div class="alert-header">
+                <div class="alert-title">{{ alert.type|upper }} ALERT</div>
+                <div class="alert-severity severity-{{ alert.severity }}">{{ alert.severity|upper }}</div>
+            </div>
+            <div class="alert-location"><i class="fas fa-map-marker-alt"></i> {{ alert.location }}</div>
+            <p>{{ alert.description }}</p>
+            <div class="alert-time"><i class="fas fa-clock"></i> {{ alert.created_at }}</div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert-card info">
+            <div class="alert-header">
+                <div class="alert-title">NO ACTIVE ALERTS</div>
+                <div class="alert-severity severity-info">INFO</div>
+            </div>
+            <p>There are currently no active alerts in your area. Check back later for updates.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

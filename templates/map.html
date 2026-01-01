@@ -1,0 +1,38 @@
+<!-- templates/map.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="map-container" id="map"></div>
+
+<div style="padding: 1rem 2rem;">
+    <h2>Emergency Services Legend</h2>
+    <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center;">
+            <img src="{{ url_for('static', filename='images/hospital-marker.png') }}" alt="Hospital" style="width: 24px; height: 24px; margin-right: 0.5rem;">
+            <span>Hospitals</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <img src="{{ url_for('static', filename='images/pharmacy-marker.png') }}" alt="Pharmacy" style="width: 24px; height: 24px; margin-right: 0.5rem;">
+            <span>Pharmacies</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <img src="{{ url_for('static', filename='images/alert-critical.png') }}" alt="Critical Alert" style="width: 24px; height: 24px; margin-right: 0.5rem;">
+            <span>Critical Alerts</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <img src="{{ url_for('static', filename='images/alert-warning.png') }}" alt="Warning Alert" style="width: 24px; height: 24px; margin-right: 0.5rem;">
+            <span>Warning Alerts</span>
+        </div>
+        <div style="display: flex; align-items: center;">
+            <img src="{{ url_for('static', filename='images/alert-info.png') }}" alt="Info Alert" style="width: 24px; height: 24px; margin-right: 0.5rem;">
+            <span>Information Alerts</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,64 @@
+<!-- templates/volunteer.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container">
+    <h1>Become a Volunteer</h1>
+    <p>Join our network of volunteers to help during disaster situations. Your contribution can save lives.</p>
+    
+    {% if success %}
+    <div style="background-color: #d4edda; color: #155724; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+        Thank you for registering as a volunteer! We will contact you soon.
+    </div>
+    {% endif %}
+    
+    <form action="{{ url_for('volunteer') }}" method="POST" onsubmit="return validateForm(this)">
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="phone">Phone Number</label>
+            <input type="tel" id="phone" name="phone" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="location">Location (City/State)</label>
+            <input type="text" id="location" name="location" class="form-control" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="skills">Skills/Expertise</label>
+            <select id="skills" name="skills" class="form-control" required>
+                <option value="">Select your skills</option>
+                <option value="medical">Medical/First Aid</option>
+                <option value="rescue">Search and Rescue</option>
+                <option value="boating">Boating/Swimming</option>
+                <option value="communication">Communication</option>
+                <option value="logistics">Logistics/Coordination</option>
+                <option value="counseling">Counseling/Support</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="availability">Availability</label>
+            <select id="availability" name="availability" class="form-control" required>
+                <option value="">Select your availability</option>
+                <option value="immediate">Immediate (24/7)</option>
+                <option value="weekdays">Weekdays</option>
+                <option value="weekends">Weekends</option>
+                <option value="as_needed">As Needed</option>
+            </select>
+        </div>
+        
+        <button type="submit" class="btn">Submit Application</button>
+    </form>
+</div>
+{% endblock %}
