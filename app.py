@@ -330,92 +330,110 @@ if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
 def get_db_path():
-    db_path = os.getenv('DATABASE', 'floodguard.db')
-    if os.getenv('VERCEL') and not os.isabs(db_path):
-        tmp_db = os.path.join('/tmp', os.path.basename(db_path))
-        if not os.path.exists(tmp_db) and os.path.exists(db_path):
-            import shutil
-            shutil.copyfile(db_path, tmp_db)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    db_name = os.getenv('DATABASE', 'floodguard.db')
+    
+    if os.path.isabs(db_name):
+        return db_name
+        
+    source_db = os.path.join(base_dir, db_name)
+    
+    if os.getenv('VERCEL'):
+        tmp_db = os.path.join('/tmp', os.path.basename(db_name))
+        if not os.path.exists(tmp_db):
+            if os.path.exists(source_db):
+                import shutil
+                try:
+                    shutil.copyfile(source_db, tmp_db)
+                except Exception as e:
+                    print(f"Warning: Could not copy DB to /tmp: {e}")
         return tmp_db
-    return db_path
+        
+    return source_db
 
 # Database initialization
 def init_db():
-    conn = sqlite3.connect(get_db_path())
-    c = conn.cursor()
-    
-    # Create users table
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 username TEXT UNIQUE NOT NULL,
-                 password TEXT NOT NULL,
-                 email TEXT NOT NULL,
-                 user_type TEXT DEFAULT 'user',
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Create NGOs table
-    c.execute('''CREATE TABLE IF NOT EXISTS ngos
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 name TEXT NOT NULL,
-                 email TEXT NOT NULL,
-                 phone TEXT NOT NULL,
-                 address TEXT NOT NULL,
-                 areas_of_operation TEXT NOT NULL,
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Create volunteers table
-    c.execute('''CREATE TABLE IF NOT EXISTS volunteers
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 name TEXT NOT NULL,
-                 email TEXT NOT NULL,
-                 phone TEXT NOT NULL,
-                 location TEXT NOT NULL,
-                 skills TEXT NOT NULL,
-                 availability TEXT NOT NULL,
-                 ngo_id INTEGER,
-                 status TEXT DEFAULT 'pending',
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                 FOREIGN KEY (ngo_id) REFERENCES ngos (id))''')
-    
-    # Create alerts table
-    c.execute('''CREATE TABLE IF NOT EXISTS alerts
-                 (id INTEGER PRIMARY KEY AUTOINCREMENT,
-                 type TEXT NOT NULL,
-                 location TEXT NOT NULL,
-                 severity TEXT NOT NULL,
-                 description TEXT NOT NULL,
-                 latitude REAL NOT NULL,
-                 longitude REAL NOT NULL,
-                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
-    
-    # Insert sample alerts if table is empty
-    c.execute('SELECT COUNT(*) FROM alerts')
-    if c.fetchone()[0] == 0:
-        c.execute('''INSERT INTO alerts (type, location, severity, description, latitude, longitude)
-                     VALUES (?, ?, ?, ?, ?, ?)''',
-                  ('flood', 'Kochi, Kerala', 'warning', 'Heavy rainfall warning issued for coastal districts.', 9.9312, 76.2673))
-        c.execute('''INSERT INTO alerts (type, location, severity, description, latitude, longitude)
-                     VALUES (?, ?, ?, ?, ?, ?)''',
-                  ('flood', 'Guwahati, Assam', 'critical', 'River Brahmaputra water level crossed danger level.', 26.1445, 91.7362))
-        c.execute('''INSERT INTO alerts (type, location, severity, description, latitude, longitude)
-                     VALUES (?, ?, ?, ?, ?, ?)''',
-                  ('cyclone', 'Bhubaneswar, Odisha', 'info', 'Cyclone watch alert for northern coastal belt.', 20.2961, 85.8245))
+    try:
+        conn = sqlite3.connect(get_db_path())
+        c = conn.cursor()
+        
+        # Create users table
+        c.execute('''CREATE TABLE IF NOT EXISTS users
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     username TEXT UNIQUE NOT NULL,
+                     password TEXT NOT NULL,
+                     email TEXT NOT NULL,
+                     user_type TEXT DEFAULT 'user',
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Create NGOs table
+        c.execute('''CREATE TABLE IF NOT EXISTS ngos
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     name TEXT NOT NULL,
+                     email TEXT NOT NULL,
+                     phone TEXT NOT NULL,
+                     address TEXT NOT NULL,
+                     areas_of_operation TEXT NOT NULL,
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Create volunteers table
+        c.execute('''CREATE TABLE IF NOT EXISTS volunteers
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     name TEXT NOT NULL,
+                     email TEXT NOT NULL,
+                     phone TEXT NOT NULL,
+                     location TEXT NOT NULL,
+                     skills TEXT NOT NULL,
+                     availability TEXT NOT NULL,
+                     ngo_id INTEGER,
+                     status TEXT DEFAULT 'pending',
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                     FOREIGN KEY (ngo_id) REFERENCES ngos (id))''')
+        
+        # Create alerts table
+        c.execute('''CREATE TABLE IF NOT EXISTS alerts
+                     (id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     type TEXT NOT NULL,
+                     location TEXT NOT NULL,
+                     severity TEXT NOT NULL,
+                     description TEXT NOT NULL,
+                     latitude REAL NOT NULL,
+                     longitude REAL NOT NULL,
+                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)''')
+        
+        # Insert sample alerts if table is empty
+        c.execute('SELECT COUNT(*) FROM alerts')
+        if c.fetchone()[0] == 0:
+            c.execute('''INSERT INTO alerts (type, location, severity, description, latitude, longitude)
+                         VALUES (?, ?, ?, ?, ?, ?)''',
+                      ('flood', 'Kochi, Kerala', 'warning', 'Heavy rainfall warning issued for coastal districts.', 9.9312, 76.2673))
+            c.execute('''INSERT INTO alerts (type, location, severity, description, latitude, longitude)
+                         VALUES (?, ?, ?, ?, ?, ?)''',
+                      ('flood', 'Guwahati, Assam', 'critical', 'River Brahmaputra water level crossed danger level.', 26.1445, 91.7362))
+            c.execute('''INSERT INTO alerts (type, location, severity, description, latitude, longitude)
+                         VALUES (?, ?, ?, ?, ?, ?)''',
+                      ('cyclone', 'Bhubaneswar, Odisha', 'info', 'Cyclone watch alert for northern coastal belt.', 20.2961, 85.8245))
 
-    # Insert sample NGOs
-    c.execute('''INSERT OR IGNORE INTO ngos (name, email, phone, address, areas_of_operation) 
-                 VALUES (?, ?, ?, ?, ?)''', 
-              ('Disaster Response Team India', 'drti@example.com', '9876543210', 
-               'Mumbai, Maharashtra', 'Mumbai, Pune, Thane'))
-    
-    c.execute('''INSERT OR IGNORE INTO ngos (name, email, phone, address, areas_of_operation) 
-                 VALUES (?, ?, ?, ?, ?)''', 
-              ('Flood Relief Foundation', 'frf@example.com', '8765432109', 
-               'Kolkata, West Bengal', 'Kolkata, Howrah, Hooghly'))
-    
-    conn.commit()
-    conn.close()
+        # Insert sample NGOs
+        c.execute('''INSERT OR IGNORE INTO ngos (name, email, phone, address, areas_of_operation) 
+                     VALUES (?, ?, ?, ?, ?)''', 
+                  ('Disaster Response Team India', 'drti@example.com', '9876543210', 
+                   'Mumbai, Maharashtra', 'Mumbai, Pune, Thane'))
+        
+        c.execute('''INSERT OR IGNORE INTO ngos (name, email, phone, address, areas_of_operation) 
+                     VALUES (?, ?, ?, ?, ?)''', 
+                  ('Flood Relief Foundation', 'frf@example.com', '8765432109', 
+                   'Kolkata, West Bengal', 'Kolkata, Howrah, Hooghly'))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
 
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"Unhandled init_db exception caught on import: {e}")
 
 # Database helper function
 def get_db():
