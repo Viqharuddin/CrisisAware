@@ -1,50 +1,278 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="max-width: 1200px; margin: 2rem auto; padding: 0 2rem;">
-    <h1>NGO Dashboard</h1>
-    
+<div style="max-width: 1200px; margin: 2rem auto; padding: 0 1.5rem;">
+    <div
+        style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <h1 style="margin: 0; color: #2c3e50;"><i class="fas fa-users-cog" style="color: #3498db;"></i> NGO
+                Volunteer Management</h1>
+            <p style="margin: 0.25rem 0 0 0; color: #7f8c8d; font-size: 0.95rem;">Review, accept, reject, and contact
+                volunteer applicants.</p>
+        </div>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="flash-message flash-{{ category }}">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
+    {% if messages %}
+    {% for category, message in messages %}
+    <div class="flash-message flash-{{ category }}"
+        style="padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; font-weight: bold;">
+        <i
+            class="fas {% if category == 'success' %}fa-check-circle{% elif category == 'warning' %}fa-exclamation-triangle{% else %}fa-exclamation-circle{% endif %}"></i>
+        {{ message }}
+    </div>
+    {% endfor %}
+    {% endif %}
     {% endwith %}
-    
-    <h2 style="margin-top: 2rem;">Volunteer Applications</h2>
-    
+
+    <h2 style="margin-top: 1.5rem; color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 0.5rem;">
+        Volunteer Applications
+    </h2>
+
     {% if volunteers %}
-        <div class="alert-container">
-            {% for volunteer in volunteers %}
-            <div class="alert-card info">
-                <div class="alert-header">
-                    <div class="alert-title">{{ volunteer.name }}</div>
-                    <div class="alert-severity severity-{{ volunteer.status }}">{{ volunteer.status|upper }}</div>
+    <div class="alert-container"
+        style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));">
+        {% for volunteer in volunteers %}
+        {% set status_lower = (volunteer.status or 'pending')|lower %}
+        <div class="alert-card status-border-{{ status_lower }}"
+            style="background: white; border-radius: 10px; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.08);">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                <div>
+                    <h3 style="margin: 0; color: #2c3e50; font-size: 1.2rem;">{{ volunteer.name }}</h3>
+                    <small style="color: #7f8c8d;"><i class="fas fa-building"></i> {{ volunteer.ngo_name or
+                        'CrisisAware' }}</small>
                 </div>
-                <div class="alert-location"><i class="fas fa-envelope"></i> {{ volunteer.email }}</div>
-                <div class="alert-location"><i class="fas fa-phone"></i> {{ volunteer.phone }}</div>
-                <div class="alert-location"><i class="fas fa-map-marker-alt"></i> {{ volunteer.location }}</div>
-                <p><strong>Skills:</strong> {{ volunteer.skills }}</p>
-                <p><strong>Availability:</strong> {{ volunteer.availability }}</p>
-                <div class="alert-time"><i class="fas fa-clock"></i> Applied on: {{ volunteer.created_at }}</div>
-                
-                <div style="margin-top: 1rem;">
-                    <button class="btn" style="margin-right: 0.5rem;">Contact Volunteer</button>
-                    <button class="btn" style="background: var(--success);">Approve</button>
-                    <button class="btn" style="background: var(--danger);">Reject</button>
+                <div>
+                    {% if status_lower == 'accepted' %}
+                    <span
+                        style="background: #2ecc71; color: white; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
+                        <i class="fas fa-check-circle"></i> ACCEPTED
+                    </span>
+                    {% elif status_lower == 'rejected' %}
+                    <span
+                        style="background: #e74c3c; color: white; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
+                        <i class="fas fa-times-circle"></i> REJECTED
+                    </span>
+                    {% else %}
+                    <span
+                        style="background: #f39c12; color: white; padding: 0.25rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold;">
+                        <i class="fas fa-hourglass-half"></i> PENDING
+                    </span>
+                    {% endif %}
                 </div>
             </div>
-            {% endfor %}
+
+            <div style="font-size: 0.9rem; color: #444; line-height: 1.6; margin-bottom: 1rem;">
+                <div><i class="fas fa-envelope" style="color: #3498db; width: 20px;"></i> <strong>Email:</strong> {{
+                    volunteer.email }}</div>
+                <div><i class="fas fa-phone" style="color: #2ecc71; width: 20px;"></i> <strong>Phone:</strong> {{
+                    volunteer.phone }}</div>
+                <div><i class="fas fa-map-marker-alt" style="color: #e74c3c; width: 20px;"></i>
+                    <strong>Location:</strong> {{ volunteer.location }}
+                </div>
+                <div><i class="fas fa-tools" style="color: #f39c12; width: 20px;"></i> <strong>Skills:</strong> {{
+                    volunteer.skills }}</div>
+                <div><i class="fas fa-calendar-alt" style="color: #9b59b6; width: 20px;"></i>
+                    <strong>Availability:</strong> {{ volunteer.availability }}
+                </div>
+            </div>
+
+            <div
+                style="font-size: 0.8rem; color: #95a5a6; border-top: 1px solid #f1f1f1; padding-top: 0.5rem; margin-bottom: 1rem;">
+                <i class="fas fa-clock"></i> Applied: {{ volunteer.created_at }}
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn contact-vol-btn" data-id="{{ volunteer.id }}" data-name="{{ volunteer.name }}"
+                    data-email="{{ volunteer.email }}" data-phone="{{ volunteer.phone }}"
+                    style="background: #3498db; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+                    <i class="fas fa-envelope"></i> Contact
+                </button>
+
+                {% if status_lower == 'pending' %}
+                <form action="{{ url_for('accept_volunteer', id=volunteer.id) }}" method="POST"
+                    style="display: inline;">
+                    <button type="submit" class="btn"
+                        style="background: #2ecc71; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;"
+                        onclick="return confirm('Accept volunteer application for {{ volunteer.name }}?\n\nThis will set the status to Accepted and open a Gmail draft for you to review and send.')">
+                        <i class="fas fa-check-circle"></i> Accept
+                    </button>
+                </form>
+
+                <button class="btn reject-vol-btn" data-id="{{ volunteer.id }}" data-name="{{ volunteer.name }}"
+                    style="background: #e74c3c; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+                    <i class="fas fa-times-circle"></i> Reject
+                </button>
+                {% endif %}
+            </div>
         </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <div class="alert-card info">
-            <div class="alert-header">
-                <div class="alert-title">NO VOLUNTEER APPLICATIONS</div>
-                <div class="alert-severity severity-info">INFO</div>
-            </div>
-            <p>There are currently no volunteer applications. Check back later.</p>
-        </div>
+    <div class="alert-card info"
+        style="background: white; border-radius: 8px; padding: 2rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <i class="fas fa-inbox" style="font-size: 2.5rem; color: #bdc3c7; margin-bottom: 0.5rem;"></i>
+        <h3 style="margin: 0; color: #7f8c8d;">No Volunteer Applications</h3>
+        <p style="color: #95a5a6; margin-top: 0.5rem;">There are currently no volunteer applications submitted.</p>
+    </div>
     {% endif %}
 </div>
-{% endblock %}  
+
+<!-- Contact Modal -->
+<div id="contactModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div
+        style="background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: #2c3e50;" id="modalVolunteerTitle">
+            <i class="fas fa-envelope-open-text" style="color: #3498db;"></i> Contact Volunteer
+        </h3>
+        <div id="modalVolunteerDetails"
+            style="background: #f8f9fa; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.85rem; color: #555;">
+        </div>
+
+        <form id="contactForm" method="POST" action="">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="contactSubject"
+                    style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333;">Subject:</label>
+                <input type="text" id="contactSubject" name="subject" class="form-control"
+                    value="Regarding your volunteer application"
+                    style="width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="contactMessage"
+                    style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333;">Message:</label>
+                <textarea id="contactMessage" name="message" class="form-control" rows="4"
+                    placeholder="Type your message for the volunteer..." required
+                    style="width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;"></textarea>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #7f8c8d; margin: 0.5rem 0 1rem 0;">
+                <i class="fas fa-info-circle"></i> Clicking "Open Gmail" will open a new tab with the email pre-filled.
+                You must review and click Send in Gmail yourself.
+            </p>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button type="button" class="btn"
+                    style="background: #95a5a6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;"
+                    onclick="closeContactModal()">Cancel</button>
+                <button type="submit" class="btn"
+                    style="background: #3498db; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fab fa-google"></i> Open Gmail
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div
+        style="background: white; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+        <h3 style="margin-top: 0; color: #c0392b;" id="rejectModalTitle">
+            <i class="fas fa-user-times" style="color: #e74c3c;"></i> Reject Volunteer Application
+        </h3>
+        <p id="rejectModalSub" style="color: #666; font-size: 0.9rem;"></p>
+
+        <form id="rejectForm" method="POST" action="">
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label for="rejectReason"
+                    style="display: block; margin-bottom: 0.5rem; font-weight: bold; color: #333;">Rejection Reason
+                    (Optional):</label>
+                <textarea id="rejectReason" name="reason" class="form-control" rows="3"
+                    placeholder="Optionally provide a reason to include in the email..."
+                    style="width: 100%; box-sizing: border-box; padding: 0.6rem; border: 1px solid #ccc; border-radius: 4px; font-family: inherit;"></textarea>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #7f8c8d; margin: 0.5rem 0 1rem 0;">
+                <i class="fas fa-info-circle"></i> This will set the status to Rejected and open a Gmail draft for you
+                to review and send.
+            </p>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button type="button" class="btn"
+                    style="background: #95a5a6; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;"
+                    onclick="closeRejectModal()">Cancel</button>
+                <button type="submit" class="btn"
+                    style="background: #e74c3c; color: white; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-times-circle"></i> Reject & Open Gmail
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ───────────────────────────────────────────────────────────
+    // Auto-open Gmail compose tab when a URL is stored in session
+    // ───────────────────────────────────────────────────────────
+    (function () {
+        {% if session.get('open_gmail_url') %}
+        var gmailUrl = "{{ session.pop('open_gmail_url') }}";
+        if (gmailUrl) {
+            window.open(gmailUrl, '_blank');
+        }
+        {% endif %}
+    })();
+
+    // ───────────────────────────────────────────────────────────
+    // Button event listeners
+    // ───────────────────────────────────────────────────────────
+    document.addEventListener('click', function (e) {
+        var contactBtn = e.target.closest('.contact-vol-btn');
+        if (contactBtn) {
+            var id = contactBtn.getAttribute('data-id');
+            var name = contactBtn.getAttribute('data-name');
+            var email = contactBtn.getAttribute('data-email');
+            var phone = contactBtn.getAttribute('data-phone');
+            openContactModal(id, name, email, phone);
+        }
+
+        var rejectBtn = e.target.closest('.reject-vol-btn');
+        if (rejectBtn) {
+            var id = rejectBtn.getAttribute('data-id');
+            var name = rejectBtn.getAttribute('data-name');
+            openRejectModal(id, name);
+        }
+    });
+
+    // ───────────────────────────────────────────────────────────
+    // Contact Modal
+    // ───────────────────────────────────────────────────────────
+    function openContactModal(id, name, email, phone) {
+        document.getElementById('contactModal').style.display = 'flex';
+        document.getElementById('modalVolunteerTitle').innerHTML =
+            '<i class="fas fa-envelope-open-text" style="color: #3498db;"></i> Contact ' + name;
+        document.getElementById('modalVolunteerDetails').innerHTML =
+            '<div><strong>Recipient:</strong> ' + name + '</div>' +
+            '<div><strong>Email:</strong> ' + email + '</div>' +
+            '<div><strong>Phone:</strong> ' + (phone || 'N/A') + '</div>';
+        document.getElementById('contactForm').action = '/volunteer/contact/' + id;
+        document.getElementById('contactSubject').value = 'Regarding your volunteer application';
+        document.getElementById('contactMessage').value = '';
+    }
+
+    function closeContactModal() {
+        document.getElementById('contactModal').style.display = 'none';
+    }
+
+    // ───────────────────────────────────────────────────────────
+    // Reject Modal
+    // ───────────────────────────────────────────────────────────
+    function openRejectModal(id, name) {
+        document.getElementById('rejectModal').style.display = 'flex';
+        document.getElementById('rejectModalTitle').innerHTML =
+            '<i class="fas fa-user-times" style="color: #e74c3c;"></i> Reject Application — ' + name;
+        document.getElementById('rejectModalSub').innerText =
+            'You are about to reject ' + name + '\'s application. You may optionally enter a reason below.';
+        document.getElementById('rejectForm').action = '/volunteer/reject/' + id;
+        document.getElementById('rejectReason').value = '';
+    }
+
+    function closeRejectModal() {
+        document.getElementById('rejectModal').style.display = 'none';
+    }
+</script>
+{% endblock %}

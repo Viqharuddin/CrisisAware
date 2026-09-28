@@ -1,3 +1,5 @@
 .env
+.env*.local
+floodguard.db
 venv/
 __pycache__/

@@ -2,29 +2,215 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="alert-container">
-    <h1>Current Alerts</h1>
-    
-    {% if alerts %}
-        {% for alert in alerts %}
-        <div class="alert-card {{ alert.severity }}">
-            <div class="alert-header">
-                <div class="alert-title">{{ alert.type|upper }} ALERT</div>
-                <div class="alert-severity severity-{{ alert.severity }}">{{ alert.severity|upper }}</div>
+<div class="alert-container" style="max-width: 1100px; margin: 2rem auto; padding: 0 1rem;">
+    <!-- Header Section -->
+    <div
+        style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border-radius: 12px; padding: 2rem; margin-bottom: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 style="margin: 0 0 0.5rem 0; color: white; font-size: 2rem;"><i class="fas fa-satellite-dish"
+                        style="color: #f1c40f;"></i> Nearby Weather Alerts</h1>
+                <p id="location-status-badge" style="margin: 0; opacity: 0.9; font-size: 0.95rem;">
+                    <i class="fas fa-location-arrow"></i> Requesting your location permission...
+                </p>
             </div>
-            <div class="alert-location"><i class="fas fa-map-marker-alt"></i> {{ alert.location }}</div>
-            <p>{{ alert.description }}</p>
-            <div class="alert-time"><i class="fas fa-clock"></i> {{ alert.created_at }}</div>
-        </div>
-        {% endfor %}
-    {% else %}
-        <div class="alert-card info">
-            <div class="alert-header">
-                <div class="alert-title">NO ACTIVE ALERTS</div>
-                <div class="alert-severity severity-info">INFO</div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span
+                    style="background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;">
+                    <i class="fas fa-compass"></i> Radius: <strong>50 km</strong>
+                </span>
+                <button id="refresh-alerts-btn" onclick="requestUserLocationAndFetchAlerts()" class="btn"
+                    style="background: #f39c12; color: #fff; padding: 0.5rem 1rem; font-size: 0.9rem; border: none; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-sync-alt"></i> Refresh Nearby
+                </button>
             </div>
-            <p>There are currently no active alerts in your area. Check back later for updates.</p>
         </div>
-    {% endif %}
+    </div>
+
+    <!-- Severity Legend -->
+    <div
+        style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #fff; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <span style="font-weight: bold; align-self: center; font-size: 0.9rem; color: #555;">Severity Indicators:</span>
+        <span class="severity-tag"
+            style="background: #e74c3c; color: white; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🔴
+            Severe / Extreme</span>
+        <span class="severity-tag"
+            style="background: #e67e22; color: white; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🟠
+            Moderate / Warning</span>
+        <span class="severity-tag"
+            style="background: #f1c40f; color: #333; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🟡
+            Minor / Advisory</span>
+        <span class="severity-tag"
+            style="background: #2ecc71; color: white; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">🟢
+            Safe / No Alert</span>
+    </div>
+
+    <!-- Fallback / Location Prompt Banner -->
+    <div id="location-fallback-banner"
+        style="display: none; background: #fff3cd; border-left: 5px solid #ffeba0; padding: 1rem; border-radius: 6px; margin-bottom: 1.5rem; color: #856404;">
+        <i class="fas fa-exclamation-triangle"></i> <strong>Location Permission Notice:</strong> <span
+            id="fallback-message-text">Location access was unavailable. Showing default regional weather alerts.</span>
+    </div>
+
+    <!-- Dynamic Alerts Container -->
+    <div id="alerts-dynamic-container">
+        <!-- Loading State -->
+        <div
+            style="text-align: center; padding: 3rem; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+            <i class="fas fa-spinner fa-spin" style="font-size: 2.5rem; color: #3498db; margin-bottom: 1rem;"></i>
+            <h3 style="margin: 0; color: #333;">Locating & Retrieving Nearby Weather Alerts...</h3>
+            <p style="color: #666; margin-top: 0.5rem;">Connecting to weather monitoring API within 50 km radius.</p>
+        </div>
+    </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const DEFAULT_RADIUS_KM = 50;
+
+    function getSeverityBadge(severity) {
+        const sev = (severity || 'info').toLowerCase();
+        if (sev === 'extreme' || sev === 'critical' || sev === 'severe') {
+            return { color: '#e74c3c', border: '#e74c3c', label: '🔴 SEVERE / EXTREME', class: 'severity-extreme' };
+        } else if (sev === 'warning' || sev === 'high' || sev === 'moderate') {
+            return { color: '#e67e22', border: '#e67e22', label: '🟠 MODERATE / WARNING', class: 'severity-warning' };
+        } else if (sev === 'minor' || sev === 'advisory') {
+            return { color: '#f1c40f', border: '#f1c40f', label: '🟡 MINOR / ADVISORY', class: 'severity-advisory' };
+        } else {
+            return { color: '#2ecc71', border: '#2ecc71', label: '🟢 SAFE / INFO', class: 'severity-info' };
+        }
+    }
+
+    function fetchNearbyAlerts(lat, lon) {
+        const container = document.getElementById('alerts-dynamic-container');
+        const statusBadge = document.getElementById('location-status-badge');
+        const refreshBtn = document.getElementById('refresh-alerts-btn');
+
+        if (refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Fetching...';
+        if (statusBadge) statusBadge.innerHTML = `<i class="fas fa-map-marker-alt" style="color: #2ecc71;"></i> Active Coordinates: <strong>${lat.toFixed(4)}, ${lon.toFixed(4)}</strong>`;
+
+        fetch(`/api/nearby-alerts?lat=${lat}&lon=${lon}&radius=${DEFAULT_RADIUS_KM}`)
+            .then(response => {
+                if (!response.ok) throw new Error(`HTTP error ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                if (refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Nearby';
+
+                if (!data.alerts || data.alerts.length === 0) {
+                    container.innerHTML = `
+                    <div style="background: #e8f8f5; border: 1px solid #a3e4d7; border-left: 6px solid #2ecc71; border-radius: 8px; padding: 2rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+                        <div style="font-size: 3rem; color: #2ecc71; margin-bottom: 0.5rem;"><i class="fas fa-check-circle"></i></div>
+                        <h2 style="margin: 0 0 0.5rem 0; color: #117864;">No Active Weather Alerts Nearby</h2>
+                        <p style="margin: 0; color: #16a085; font-size: 1.05rem;">
+                            No active weather warnings or disaster alerts have been reported near your location within the <strong>${DEFAULT_RADIUS_KM} km</strong> radius.
+                        </p>
+                        <p style="margin-top: 1rem; font-size: 0.85rem; color: #7f8c8d;">
+                            Last checked: ${new Date().toLocaleTimeString()}
+                        </p>
+                    </div>
+                `;
+                    return;
+                }
+
+                let html = '';
+                data.alerts.forEach(alert => {
+                    const sevInfo = getSeverityBadge(alert.severity);
+                    const distText = alert.distance_km !== undefined ? `<strong>${alert.distance_km} km</strong> away` : 'Nearby';
+
+                    html += `
+                    <div class="alert-card" style="background: white; border-radius: 10px; border-left: 6px solid ${sevInfo.border}; padding: 1.5rem; margin-bottom: 1.25rem; box-shadow: 0 3px 10px rgba(0,0,0,0.08); position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                            <div>
+                                <span style="background: ${sevInfo.color}; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.5px;">
+                                    ${sevInfo.label}
+                                </span>
+                                <h2 style="margin: 0.5rem 0 0.2rem 0; color: #2c3e50; font-size: 1.3rem;">${alert.type || 'Weather Alert'}</h2>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; color: #555; border: 1px solid #e9ecef;">
+                                <i class="fas fa-route" style="color: #3498db;"></i> ${distText}
+                            </div>
+                        </div>
+
+                        <div style="margin-bottom: 0.75rem; font-size: 0.95rem; color: #34495e;">
+                            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i> <strong>Location / Area:</strong> ${alert.location || 'Your Region'}
+                        </div>
+
+                        <p style="color: #555; line-height: 1.5; margin: 0 0 1rem 0; font-size: 0.95rem;">
+                            ${alert.description || 'No detailed description available.'}
+                        </p>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; border-top: 1px solid #f1f1f1; padding-top: 0.75rem; font-size: 0.85rem; color: #7f8c8d;">
+                            <div><i class="fas fa-clock" style="color: #95a5a6;"></i> <strong>Start:</strong> ${alert.start_time || 'N/A'}</div>
+                            <div><i class="fas fa-hourglass-end" style="color: #95a5a6;"></i> <strong>Expiry:</strong> ${alert.end_time || 'N/A'}</div>
+                            <div><i class="fas fa-building" style="color: #95a5a6;"></i> <strong>Source:</strong> ${alert.source || 'IMD & Meteorological Network'}</div>
+                            <div><i class="fas fa-history" style="color: #95a5a6;"></i> <strong>Updated:</strong> ${alert.updated_at || 'Just now'}</div>
+                        </div>
+                    </div>
+                `;
+                });
+
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                console.error('Error fetching nearby alerts:', err);
+                if (refreshBtn) refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Refresh Nearby';
+                container.innerHTML = `
+                <div style="background: #fdf2e9; border-left: 6px solid #e67e22; border-radius: 8px; padding: 1.5rem;">
+                    <h3 style="margin-top: 0; color: #d35400;"><i class="fas fa-exclamation-triangle"></i> Unable to Fetch Weather Alerts</h3>
+                    <p style="color: #e67e22; margin-bottom: 1rem;">We encountered an issue connecting to the weather alert service. Please check your network or try again.</p>
+                    <button class="btn" onclick="requestUserLocationAndFetchAlerts()" style="background: #e67e22; color: white;">Retry Fetching</button>
+                </div>
+            `;
+            });
+    }
+
+    function requestUserLocationAndFetchAlerts() {
+        const statusBadge = document.getElementById('location-status-badge');
+        const fallbackBanner = document.getElementById('location-fallback-banner');
+        const fallbackText = document.getElementById('fallback-message-text');
+
+        if (!navigator.geolocation) {
+            if (fallbackBanner) {
+                fallbackBanner.style.display = 'block';
+                fallbackText.innerText = 'Geolocation is not supported by your browser. Displaying default regional weather alerts.';
+            }
+            // Fallback default coordinates (e.g. Mumbai / Central India coordinates)
+            fetchNearbyAlerts(19.0760, 72.8777);
+            return;
+        }
+
+        if (statusBadge) statusBadge.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Requesting GPS Location...';
+
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                if (fallbackBanner) fallbackBanner.style.display = 'none';
+                fetchNearbyAlerts(position.coords.latitude, position.coords.longitude);
+            },
+            error => {
+                console.warn('Geolocation permission error:', error);
+                let message = 'Location access was denied or unavailable. Showing regional weather alerts.';
+                if (error.code === error.PERMISSION_DENIED) {
+                    message = 'Location permission denied by user. Showing regional alerts within 50 km of default sector.';
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    message = 'Location position unavailable. Showing regional alerts within 50 km.';
+                } else if (error.code === error.TIMEOUT) {
+                    message = 'Location request timed out. Showing regional alerts within 50 km.';
+                }
+                if (fallbackBanner) {
+                    fallbackBanner.style.display = 'block';
+                    fallbackText.innerText = message;
+                }
+                // Fallback default coordinates
+                fetchNearbyAlerts(19.0760, 72.8777);
+            },
+            { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+        );
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        requestUserLocationAndFetchAlerts();
+    });
+</script>
 {% endblock %}

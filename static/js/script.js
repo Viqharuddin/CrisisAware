@@ -27,11 +27,101 @@ function validateForm(form) {
         }
     });
     
+    // Validate Name (only characters and spaces)
+    const nameInput = form.querySelector('#name');
+    const nameError = form.querySelector('#name-error');
+    if (nameInput && nameInput.value.trim()) {
+        const charPattern = /^[A-Za-z\s]+$/;
+        if (!charPattern.test(nameInput.value.trim())) {
+            valid = false;
+            nameInput.style.borderColor = '#e74c3c';
+            if (nameError) nameError.style.display = 'block';
+        } else {
+            if (nameError) nameError.style.display = 'none';
+        }
+    }
+    
+    // Validate Phone (exactly 10 digits)
+    const phoneInput = form.querySelector('#phone');
+    const phoneError = form.querySelector('#phone-error');
+    if (phoneInput && phoneInput.value.trim()) {
+        const phonePattern = /^\d{10}$/;
+        if (!phonePattern.test(phoneInput.value.trim())) {
+            valid = false;
+            phoneInput.style.borderColor = '#e74c3c';
+            if (phoneError) phoneError.style.display = 'block';
+        } else {
+            if (phoneError) phoneError.style.display = 'none';
+        }
+    }
+    
+    // Validate Location/City (only characters, spaces, and commas)
+    const locInput = form.querySelector('#location');
+    const locError = form.querySelector('#location-error');
+    if (locInput && locInput.value.trim()) {
+        const locPattern = /^[A-Za-z\s,]+$/;
+        if (!locPattern.test(locInput.value.trim())) {
+            valid = false;
+            locInput.style.borderColor = '#e74c3c';
+            if (locError) locError.style.display = 'block';
+        } else {
+            if (locError) locError.style.display = 'none';
+        }
+    }
+    
     return valid;
 }
 
-// Feature card navigation
+// Feature card navigation & Input Restrictions
 document.addEventListener('DOMContentLoaded', function() {
+    // Phone input restriction: numeric digits only, max 10 digits
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+            const phoneError = document.getElementById('phone-error');
+            if (this.value.length === 10) {
+                this.style.borderColor = '#2ecc71';
+                if (phoneError) phoneError.style.display = 'none';
+            } else if (this.value.length > 0) {
+                this.style.borderColor = '#e74c3c';
+                if (phoneError) {
+                    phoneError.textContent = `Phone number must be exactly 10 digits (${this.value.length}/10 digits entered).`;
+                    phoneError.style.display = 'block';
+                }
+            } else {
+                this.style.borderColor = '#ddd';
+                if (phoneError) phoneError.style.display = 'none';
+            }
+        });
+    }
+
+    // Name input restriction: characters and spaces only
+    const nameInput = document.getElementById('name');
+    if (nameInput) {
+        nameInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^A-Za-z\s]/g, '');
+            const nameError = document.getElementById('name-error');
+            if (nameInput.value.trim().length > 0) {
+                this.style.borderColor = '#2ecc71';
+                if (nameError) nameError.style.display = 'none';
+            }
+        });
+    }
+
+    // Location input restriction: characters, spaces, and commas only
+    const locInput = document.getElementById('location');
+    if (locInput) {
+        locInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^A-Za-z\s,]/g, '');
+            const locError = document.getElementById('location-error');
+            if (locInput.value.trim().length > 0) {
+                this.style.borderColor = '#2ecc71';
+                if (locError) locError.style.display = 'none';
+            }
+        });
+    }
+
     const featureCards = document.querySelectorAll('.feature-card');
     featureCards.forEach(card => {
         card.style.cursor = 'pointer';

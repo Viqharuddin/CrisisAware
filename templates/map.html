@@ -2,30 +2,105 @@
 {% extends "base.html" %}
 
 {% block content %}
+<div
+    style="padding: 0.75rem 2rem; background: #eef6fc; border-left: 4px solid #3498db; margin-bottom: 0.5rem; font-size: 0.95rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+    <span><i class="fas fa-map-marker-alt" style="color: #e74c3c; margin-right: 0.5rem;"></i> <strong>Mark
+            Location:</strong> Click anywhere on the map to place a location mark/pin with custom notes.</span>
+    <button id="clear-marks-btn" onclick="clearAllMarkedLocations()"
+        style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;"><i
+            class="fas fa-trash-alt"></i> Clear My Marks</button>
+</div>
+
 <div class="map-container" id="map"></div>
 
 <div style="padding: 1rem 2rem;">
-    <h2>Emergency Services Legend</h2>
-    <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center;">
-            <img src="{{ url_for('static', filename='images/hospital-marker.png') }}" alt="Hospital" style="width: 24px; height: 24px; margin-right: 0.5rem;">
-            <span>Hospitals</span>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h2 style="margin: 0; color: #2c3e50; font-size: 1.3rem;">
+            <i class="fas fa-bookmark" style="color: #e74c3c; margin-right: 0.5rem;"></i> My Saved Landmarks & Locations
+        </h2>
+        <span style="font-size: 0.85rem; color: #7f8c8d;">Click "Get Directions" on any landmark to draw a route from
+            your location</span>
+    </div>
+    <div id="saved-landmarks-list"
+        style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); margin-bottom: 2rem;">
+        <!-- Dynamically populated by map.js -->
+    </div>
+
+    <h2 style="color: #2c3e50; font-size: 1.2rem; border-top: 2px solid #ecf0f1; padding-top: 1rem;">
+        <i class="fas fa-list-ul" style="color: #3498db; margin-right: 0.5rem;"></i> Emergency Services & Map Legend
+    </h2>
+    <div
+        style="display: flex; gap: 1.25rem; margin-top: 1rem; flex-wrap: wrap; background: #f8f9fa; padding: 1.25rem; border-radius: 8px; border: 1px solid #e9ecef;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #e74c3c; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-hospital" style="transform: rotate(45deg); color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Hospitals</span>
         </div>
-        <div style="display: flex; align-items: center;">
-            <img src="{{ url_for('static', filename='images/pharmacy-marker.png') }}" alt="Pharmacy" style="width: 24px; height: 24px; margin-right: 0.5rem;">
-            <span>Pharmacies</span>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #3498db; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-clinic-medical" style="transform: rotate(45deg); color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Pharmacies</span>
         </div>
-        <div style="display: flex; align-items: center;">
-            <img src="{{ url_for('static', filename='images/alert-critical.png') }}" alt="Critical Alert" style="width: 24px; height: 24px; margin-right: 0.5rem;">
-            <span>Critical Alerts</span>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #f39c12; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-school" style="transform: rotate(45deg); color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Schools / Shelters</span>
         </div>
-        <div style="display: flex; align-items: center;">
-            <img src="{{ url_for('static', filename='images/alert-warning.png') }}" alt="Warning Alert" style="width: 24px; height: 24px; margin-right: 0.5rem;">
-            <span>Warning Alerts</span>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #9b59b6; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-landmark" style="transform: rotate(45deg); color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Landmarks</span>
         </div>
-        <div style="display: flex; align-items: center;">
-            <img src="{{ url_for('static', filename='images/alert-info.png') }}" alt="Info Alert" style="width: 24px; height: 24px; margin-right: 0.5rem;">
-            <span>Information Alerts</span>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #e74c3c; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-exclamation-triangle" style="color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Critical Alerts</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #f39c12; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-exclamation-circle" style="color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Warning Alerts</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #3498db; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-info-circle" style="color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Info Alerts</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #2980b9; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-crosshairs" style="color: white; font-size: 12px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Your Location</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <div
+                style="background-color: #e74c3c; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 1px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+                <i class="fas fa-map-marker-alt" style="transform: rotate(45deg); color: white; font-size: 11px;"></i>
+            </div>
+            <span style="font-weight: 500; font-size: 0.9rem; color: #333;">Marked Locations</span>
         </div>
     </div>
 </div>

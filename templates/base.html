@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,12 +9,13 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 </head>
+
 <body>
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
                 <i class="fas fa-shield-alt"></i>
-                <span>CrisesAware </span>
+                <span>CrisisAware </span>
             </div>
             <ul class="nav-menu">
                 <li class="nav-item">
@@ -36,6 +38,9 @@
                 </li>
                 {% if session.user_id %}
                 <li class="nav-item">
+                    <a href="{{ url_for('ngo_dashboard') }}" class="nav-link">Dashboard</a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ url_for('logout') }}" class="nav-link">Logout ({{ session.username }})</a>
                 </li>
                 {% else %}
@@ -56,14 +61,14 @@
         <!-- Flash messages -->
         <div class="flash-messages">
             {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash-message flash-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                {% endif %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-message flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
             {% endwith %}
         </div>
-        
+
         <!-- CONTENT BLOCK - This is where child templates will insert their content -->
         {% block content %}{% endblock %}
     </main>
@@ -71,8 +76,8 @@
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-section">
-                <h3>CrisesAware </h3>
-                <p>Comprehensive disaster management platform for  preparedness and response across India.</p>
+                <h3>CrisisAware </h3>
+                <p>Comprehensive disaster management platform for preparedness and response across India.</p>
             </div>
             <div class="footer-section">
                 <h3>Quick Links</h3>
@@ -102,7 +107,7 @@
             </div>
         </div>
         <div class="footer-bottom">
-            <p>&copy; 2025 CrisesAware. All rights reserved.</p>
+            <p>&copy; 2025 CrisisAware. All rights reserved.</p>
         </div>
     </footer>
 
@@ -110,4 +115,5 @@
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     {% block scripts %}{% endblock %}
 </body>
+
 </html>

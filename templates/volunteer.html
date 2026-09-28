@@ -15,7 +15,8 @@
     <form action="{{ url_for('volunteer') }}" method="POST" onsubmit="return validateForm(this)">
         <div class="form-group">
             <label for="name">Full Name</label>
-            <input type="text" id="name" name="name" class="form-control" required>
+            <input type="text" id="name" name="name" class="form-control" pattern="[A-Za-z\s]+" title="Only characters (letters and spaces) are allowed" placeholder="Full Name (characters only)" required>
+            <small class="error-msg" id="name-error" style="color: #e74c3c; display: none; font-size: 0.85rem; margin-top: 4px;">Only characters (letters and spaces) are allowed.</small>
         </div>
         
         <div class="form-group">
@@ -25,12 +26,14 @@
         
         <div class="form-group">
             <label for="phone">Phone Number</label>
-            <input type="tel" id="phone" name="phone" class="form-control" required>
+            <input type="tel" id="phone" name="phone" class="form-control" pattern="[0-9]{10}" maxlength="10" minlength="10" inputmode="numeric" title="Phone number must be exactly 10 digits" placeholder="10-digit phone number" required>
+            <small class="error-msg" id="phone-error" style="color: #e74c3c; display: none; font-size: 0.85rem; margin-top: 4px;">Phone number must be exactly 10 digits.</small>
         </div>
         
         <div class="form-group">
             <label for="location">Location (City/State)</label>
-            <input type="text" id="location" name="location" class="form-control" required>
+            <input type="text" id="location" name="location" class="form-control" pattern="[A-Za-z\s,]+" title="Only characters (letters and spaces) are allowed" placeholder="City / State (characters only)" required>
+            <small class="error-msg" id="location-error" style="color: #e74c3c; display: none; font-size: 0.85rem; margin-top: 4px;">Only characters (letters, spaces, and commas) are allowed.</small>
         </div>
         
         <div class="form-group">
