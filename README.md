@@ -58,44 +58,43 @@ Open your browser and navigate to `http://127.0.0.1:5000`.
 
 ---
 
-## 🌐 Production Deployment Guide
+## 🌐 Production Deployment Guides
 
-The application is production-ready using **Gunicorn** as the WSGI server.
+### Option A: Vercel Deployment (Serverless)
 
-### Recommended Hosting Platform: Render (Web Services)
-
-#### Step 1: Push Code to GitHub
-Ensure `.env` is listed in `.gitignore` so secrets are NOT pushed to GitHub:
-```bash
-git add .
-git commit -m "Prepare Flask app for production deployment"
-git push origin main
-```
-
-#### Step 2: Deploy on Render
-1. Log in to [Render.com](https://render.com/).
-2. Click **New +** → **Web Service**.
-3. Connect your GitHub repository.
-4. Configure service settings:
-   - **Name**: `crisis-aware` (or preferred name)
-   - **Environment**: `Python 3`
-   - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `gunicorn app:app`
-5. Add Environment Variables under **Environment**:
-   - `SECRET_KEY`: `<generate-secure-random-string>`
+1. Push your repository to GitHub:
+   ```bash
+   git add .
+   git commit -m "Configure Vercel deployment"
+   git push origin main
+   ```
+2. Log in to [Vercel.com](https://vercel.com) and click **Add New** → **Project**.
+3. Import your GitHub repository.
+4. Framework Preset: **Other** (Vercel automatically detects `vercel.json`).
+5. Configure Environment Variables under **Environment Variables**:
+   - `SECRET_KEY`: `<your-random-secret-key>`
    - `FLASK_DEBUG`: `False`
    - `ALERT_RADIUS_KM`: `50`
    - `DATABASE`: `floodguard.db`
-6. Click **Create Web Service**. Render will deploy the application and provide a public URL (e.g., `https://crisis-aware.onrender.com`).
+6. Click **Deploy**. Vercel will deploy the application and provide a URL (e.g. `https://crisis-aware.vercel.app`).
+
+### Option B: Render Deployment (WSGI Service)
+
+1. Connect your repository on [Render.com](https://render.com/).
+2. Select **New Web Service**.
+3. Build Command: `pip install -r requirements.txt`
+4. Start Command: `gunicorn app:app`
+5. Add Environment Variables (`SECRET_KEY`, `FLASK_DEBUG`, etc.).
+6. Deploy to receive your public Render URL (`https://crisis-aware.onrender.com`).
 
 ---
 
 ## 🧪 Testing Live Deployment
 
 After deployment, test the following key paths:
-1. **Homepage**: `https://<your-app>.onrender.com/`
-2. **Interactive Map**: `https://<your-app>.onrender.com/map`
-3. **Weather Alerts**: `https://<your-app>.onrender.com/alerts`
+1. **Homepage**: `https://<your-app>.vercel.app/`
+2. **Interactive Map**: `https://<your-app>.vercel.app/map`
+3. **Weather Alerts**: `https://<your-app>.vercel.app/alerts`
 4. **NGO Login**: Log in with authorized credentials at `/login`.
 5. **Dashboard & Gmail Compose**: Navigate to `/ngo/dashboard`, click **Accept**, **Reject**, or **Contact** to verify that a pre-filled Gmail draft opens in a new tab.
 

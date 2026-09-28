@@ -329,9 +329,19 @@ GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
+def get_db_path():
+    db_path = os.getenv('DATABASE', 'floodguard.db')
+    if os.getenv('VERCEL') and not os.isabs(db_path):
+        tmp_db = os.path.join('/tmp', os.path.basename(db_path))
+        if not os.path.exists(tmp_db) and os.path.exists(db_path):
+            import shutil
+            shutil.copyfile(db_path, tmp_db)
+        return tmp_db
+    return db_path
+
 # Database initialization
 def init_db():
-    conn = sqlite3.connect(app.config['DATABASE'])
+    conn = sqlite3.connect(get_db_path())
     c = conn.cursor()
     
     # Create users table
@@ -409,7 +419,7 @@ init_db()
 
 # Database helper function
 def get_db():
-    conn = sqlite3.connect(app.config['DATABASE'])
+    conn = sqlite3.connect(get_db_path())
     conn.row_factory = sqlite3.Row
     return conn
 
