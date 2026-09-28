@@ -173,10 +173,13 @@ import requests
 import math
 import time
 from datetime import datetime
-from urllib.parse import quote
-import google.generativeai as genai
 import os
 from dotenv import load_dotenv
+
+try:
+    import google.generativeai as genai
+except Exception as e:
+    genai = None
 
 load_dotenv()
 
