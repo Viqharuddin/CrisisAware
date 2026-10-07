@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-container form-container-wide">
+    <h1>Register your NGO</h1>
+    <p>Submit a complete application for administrator review. You will not receive a login until the application is approved.</p>
+
+    <form action="{{ url_for('ngo_register') }}" method="POST">
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="org_name">Organization name</label>
+                <input type="text" id="org_name" name="org_name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="registration_no">Registration / legal ID</label>
+                <input type="text" id="registration_no" name="registration_no" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="contact_person">Contact person</label>
+                <input type="text" id="contact_person" name="contact_person" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="designation">Designation</label>
+                <input type="text" id="designation" name="designation" class="form-control" placeholder="e.g. Secretary, Program Head" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Official email</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="phone">Phone number</label>
+                <input type="tel" id="phone" name="phone" class="form-control" pattern="[0-9]{10}" maxlength="10" inputmode="numeric" required>
+            </div>
+            <div class="form-group">
+                <label for="website">Website (optional)</label>
+                <input type="url" id="website" name="website" class="form-control" placeholder="https://">
+            </div>
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" name="city" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="state">State</label>
+                <input type="text" id="state" name="state" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="pincode">Pincode</label>
+                <input type="text" id="pincode" name="pincode" class="form-control" pattern="[0-9]{6}" maxlength="6" inputmode="numeric" placeholder="6-digit PIN" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="address">Full address</label>
+            <textarea id="address" name="address" class="form-control" rows="2" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="areas_of_operation">Areas of operation</label>
+            <input type="text" id="areas_of_operation" name="areas_of_operation" class="form-control" placeholder="Cities or districts you serve" required>
+        </div>
+        <div class="form-group">
+            <label for="description">Mission / description</label>
+            <textarea id="description" name="description" class="form-control" rows="4" required></textarea>
+        </div>
+        <button type="submit" class="btn">Submit application</button>
+    </form>
+
+    <p class="form-footer-note">Already have an approved login? <a href="{{ url_for('login') }}">Login here</a></p>
+</div>
+{% endblock %}

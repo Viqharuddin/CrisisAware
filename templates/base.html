@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CrisesAware India - Disaster Management Platform</title>
+    <title>CrisisAware India - Disaster Management Platform</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -37,15 +37,27 @@
                     <a href="{{ url_for('chatbot') }}" class="nav-link">AI Assistant</a>
                 </li>
                 {% if session.user_id %}
+                {% if session.user_type == 'admin' %}
                 <li class="nav-item">
-                    <a href="{{ url_for('ngo_dashboard') }}" class="nav-link">Dashboard</a>
+                    <a href="{{ url_for('admin_dashboard') }}" class="nav-link">Admin</a>
                 </li>
+                {% elif session.user_type == 'ngo' %}
                 <li class="nav-item">
-                    <a href="{{ url_for('logout') }}" class="nav-link">Logout ({{ session.username }})</a>
+                    <a href="{{ url_for('ngo_dashboard') }}" class="nav-link">NGO Dashboard</a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a href="{{ url_for('logout') }}" class="nav-link">Logout</a>
                 </li>
                 {% else %}
                 <li class="nav-item">
                     <a href="{{ url_for('login') }}" class="nav-link">Login</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('register') }}" class="nav-link">Register</a>
+                </li>
+                <li class="nav-item">
+                    <a href="{{ url_for('ngo_register') }}" class="nav-link">NGO Apply</a>
                 </li>
                 {% endif %}
             </ul>

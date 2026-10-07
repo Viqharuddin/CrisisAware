@@ -69,6 +69,13 @@
 <script>
     const DEFAULT_RADIUS_KM = 50;
 
+    function escapeHtml(value) {
+        if (value === undefined || value === null) return '';
+        return String(value)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+
     function getSeverityBadge(severity) {
         const sev = (severity || 'info').toLowerCase();
         if (sev === 'extreme' || sev === 'critical' || sev === 'severe') {
@@ -126,7 +133,7 @@
                                 <span style="background: ${sevInfo.color}; color: white; padding: 0.25rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: bold; letter-spacing: 0.5px;">
                                     ${sevInfo.label}
                                 </span>
-                                <h2 style="margin: 0.5rem 0 0.2rem 0; color: #2c3e50; font-size: 1.3rem;">${alert.type || 'Weather Alert'}</h2>
+                                <h2 style="margin: 0.5rem 0 0.2rem 0; color: #2c3e50; font-size: 1.3rem;">${escapeHtml(alert.type || 'Weather Alert')}</h2>
                             </div>
                             <div style="background: #f8f9fa; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; color: #555; border: 1px solid #e9ecef;">
                                 <i class="fas fa-route" style="color: #3498db;"></i> ${distText}
@@ -134,18 +141,18 @@
                         </div>
 
                         <div style="margin-bottom: 0.75rem; font-size: 0.95rem; color: #34495e;">
-                            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i> <strong>Location / Area:</strong> ${alert.location || 'Your Region'}
+                            <i class="fas fa-map-marker-alt" style="color: #e74c3c;"></i> <strong>Location / Area:</strong> ${escapeHtml(alert.location || 'Your Region')}
                         </div>
 
                         <p style="color: #555; line-height: 1.5; margin: 0 0 1rem 0; font-size: 0.95rem;">
-                            ${alert.description || 'No detailed description available.'}
+                            ${escapeHtml(alert.description || 'No detailed description available.')}
                         </p>
 
                         <div style="display: flex; flex-wrap: wrap; gap: 1.5rem; border-top: 1px solid #f1f1f1; padding-top: 0.75rem; font-size: 0.85rem; color: #7f8c8d;">
-                            <div><i class="fas fa-clock" style="color: #95a5a6;"></i> <strong>Start:</strong> ${alert.start_time || 'N/A'}</div>
-                            <div><i class="fas fa-hourglass-end" style="color: #95a5a6;"></i> <strong>Expiry:</strong> ${alert.end_time || 'N/A'}</div>
-                            <div><i class="fas fa-building" style="color: #95a5a6;"></i> <strong>Source:</strong> ${alert.source || 'IMD & Meteorological Network'}</div>
-                            <div><i class="fas fa-history" style="color: #95a5a6;"></i> <strong>Updated:</strong> ${alert.updated_at || 'Just now'}</div>
+                            <div><i class="fas fa-clock" style="color: #95a5a6;"></i> <strong>Start:</strong> ${escapeHtml(alert.start_time || 'N/A')}</div>
+                            <div><i class="fas fa-hourglass-end" style="color: #95a5a6;"></i> <strong>Expiry:</strong> ${escapeHtml(alert.end_time || 'N/A')}</div>
+                            <div><i class="fas fa-building" style="color: #95a5a6;"></i> <strong>Source:</strong> ${escapeHtml(alert.source || 'IMD & Meteorological Network')}</div>
+                            <div><i class="fas fa-history" style="color: #95a5a6;"></i> <strong>Updated:</strong> ${escapeHtml(alert.updated_at || 'Just now')}</div>
                         </div>
                     </div>
                 `;

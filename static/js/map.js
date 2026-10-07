@@ -6,6 +6,7 @@ let placeMarkers = [];
 let routingControl = null;
 let markedLocationsLayer;
 let markedMarkerObjects = {};
+let isRoutingReady = false;
 
 function createMarkIcon() {
     return L.divIcon({
@@ -70,16 +71,17 @@ function createUserIcon() {
 function createAlertIcon(severity) {
     let bgColor = '#3498db';
     let iconClass = 'fa-info-circle';
-    if (severity === 'critical') {
+    const sev = (severity || 'info').toLowerCase();
+    if (sev === 'critical' || sev === 'extreme' || sev === 'severe') {
         bgColor = '#e74c3c';
         iconClass = 'fa-exclamation-triangle';
-    } else if (severity === 'warning') {
+    } else if (sev === 'warning' || sev === 'high' || sev === 'moderate') {
         bgColor = '#f39c12';
         iconClass = 'fa-exclamation-circle';
     }
 
     return L.divIcon({
-        className: `custom-alert-pin alert-${severity}`,
+        className: `custom-alert-pin alert-${sev}`,
         html: `<div style="background-color: ${bgColor}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4);"><i class="fas ${iconClass}" style="color: white; font-size: 15px;"></i></div>`,
         iconSize: [32, 32],
         iconAnchor: [16, 16],
@@ -89,12 +91,42 @@ function createAlertIcon(severity) {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
+// Great-circle distance in kilometers between two lat/lon points
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Show a clear, non-fabricated status/error banner above the map (uses textContent — no HTML injection)
+function showMapNotice(message, isError) {
+    let el = document.getElementById('map-notice');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'map-notice';
+        const mapEl = document.getElementById('map');
+        if (mapEl && mapEl.parentNode) {
+            mapEl.parentNode.insertBefore(el, mapEl);
+        } else {
+            document.body.appendChild(el);
+        }
+    }
+    el.textContent = message;
+    el.style.cssText = 'margin: 0.5rem 2rem; padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.9rem; border-left: 4px solid ' +
+        (isError ? '#e74c3c' : '#f39c12') + '; background: ' + (isError ? '#fdecea' : '#fef5e7') +
+        '; color: ' + (isError ? '#922b21' : '#9c640c') + ';';
+    el.style.display = 'block';
 }
 
 function addLocationMark(lat, lng, name = '', openPopup = false, id = null) {
     const markId = id || 'mark_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-
     const marker = L.marker([lat, lng], { icon: createMarkIcon() });
 
     const updatePopup = (currentName) => {
@@ -148,53 +180,46 @@ function addLocationMark(lat, lng, name = '', openPopup = false, id = null) {
 }
 
 function saveMark(id, lat, lng) {
-    const inputEl = document.getElementById(`input-${id}`);
-    const name = inputEl ? inputEl.value.trim() : '';
-
+    const input = document.getElementById(`input-${id}`);
+    const name = input ? input.value.trim() : '';
     if (markedMarkerObjects[id]) {
         markedMarkerObjects[id].name = name;
-    }
 
-    const saved = JSON.parse(localStorage.getItem('floodguard_marked_locations') || '[]');
-    const existingIndex = saved.findIndex(m => m.id === id);
-    if (existingIndex >= 0) {
-        saved[existingIndex].name = name;
-    } else {
-        saved.push({ id, lat, lng, name });
-    }
-    localStorage.setItem('floodguard_marked_locations', JSON.stringify(saved));
+        // Persist to localStorage
+        saveMarkedLocationsToStorage();
 
-    if (markedMarkerObjects[id] && markedMarkerObjects[id].marker) {
-        const titleText = name ? name : 'Marked Location';
-        const popupContent = `
-            <div style="padding: 6px; min-width: 210px;">
-                <h4 style="margin: 0 0 6px 0; color: #e74c3c; font-size: 0.95rem; display: flex; align-items: center;">
-                    <i class="fas fa-map-marker-alt" style="margin-right: 6px;"></i> ${escapeHtml(titleText)}
-                </h4>
-                <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #666;">
-                    Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}
-                </p>
-                <p style="margin: 0 0 6px 0; font-size: 0.85rem; color: #2ecc71; font-weight: bold;">
-                    ✓ Saved location landmark!
-                </p>
-                <label style="font-size: 0.8rem; font-weight: bold; display: block; margin-bottom: 2px;">Label / Note:</label>
-                <input type="text" id="input-${id}" value="${escapeHtml(name)}" placeholder="e.g. Flood Zone, Safe Shelter" style="width: 100%; box-sizing: border-box; padding: 5px; margin: 2px 0 8px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem;">
-                <div style="display: flex; gap: 4px; margin-bottom: 6px;">
-                    <button onclick="saveMark('${id}', ${lat}, ${lng})" style="background: #2ecc71; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                        <i class="fas fa-save"></i> Save
-                    </button>
-                    <button onclick="deleteMark('${id}')" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                        <i class="fas fa-trash-alt"></i> Delete
+        // Update popup title
+        const updatePopupFn = (currentName) => {
+            const titleText = currentName ? currentName : 'Marked Location';
+            const popupContent = `
+                <div style="padding: 6px; min-width: 210px;">
+                    <h4 style="margin: 0 0 6px 0; color: #e74c3c; font-size: 0.95rem; display: flex; align-items: center;">
+                        <i class="fas fa-map-marker-alt" style="margin-right: 6px;"></i> ${escapeHtml(titleText)}
+                    </h4>
+                    <p style="margin: 0 0 6px 0; font-size: 0.8rem; color: #666;">
+                        Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}
+                    </p>
+                    <label style="font-size: 0.8rem; font-weight: bold; display: block; margin-bottom: 2px;">Label / Note:</label>
+                    <input type="text" id="input-${id}" value="${escapeHtml(currentName)}" placeholder="e.g. Flood Zone, Safe Shelter" style="width: 100%; box-sizing: border-box; padding: 5px; margin: 2px 0 8px 0; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem;">
+                    <div style="display: flex; gap: 4px; margin-bottom: 6px;">
+                        <button onclick="saveMark('${id}', ${lat}, ${lng})" style="background: #2ecc71; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <i class="fas fa-save"></i> Save
+                        </button>
+                        <button onclick="deleteMark('${id}')" style="background: #e74c3c; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                            <i class="fas fa-trash-alt"></i> Delete
+                        </button>
+                    </div>
+                    <button onclick="showRoute(${lat}, ${lng})" class="route-btn" style="background: #3498db; color: white; border: none; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold;">
+                        <i class="fas fa-directions"></i> Get Directions
                     </button>
                 </div>
-                <button onclick="showRoute(${lat}, ${lng})" class="route-btn" style="background: #3498db; color: white; border: none; padding: 7px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 5px; font-weight: bold;">
-                    <i class="fas fa-directions"></i> Get Directions
-                </button>
-            </div>
-        `;
-        markedMarkerObjects[id].marker.setPopupContent(popupContent);
+            `;
+            markedMarkerObjects[id].marker.bindPopup(popupContent);
+        };
+        updatePopupFn(name);
+        markedMarkerObjects[id].marker.closePopup();
+        updateSavedLandmarksUI();
     }
-    updateSavedLandmarksUI();
 }
 
 function deleteMark(id) {
@@ -203,18 +228,30 @@ function deleteMark(id) {
             markedLocationsLayer.removeLayer(markedMarkerObjects[id].marker);
         }
         delete markedMarkerObjects[id];
+        saveMarkedLocationsToStorage();
+        updateSavedLandmarksUI();
     }
-    const saved = JSON.parse(localStorage.getItem('floodguard_marked_locations') || '[]');
-    const updated = saved.filter(m => m.id !== id);
-    localStorage.setItem('floodguard_marked_locations', JSON.stringify(updated));
-    updateSavedLandmarksUI();
+}
+
+function saveMarkedLocationsToStorage() {
+    const list = Object.values(markedMarkerObjects).map(item => ({
+        id: item.id,
+        lat: item.lat,
+        lng: item.lng,
+        name: item.name
+    }));
+    localStorage.setItem('floodguard_marked_locations', JSON.stringify(list));
 }
 
 function focusMarkOnMap(id) {
-    if (markedMarkerObjects[id] && markedMarkerObjects[id].marker) {
+    if (markedMarkerObjects[id]) {
         const item = markedMarkerObjects[id];
-        map.setView([item.lat, item.lng], 15);
+        map.setView([item.lat, item.lng], 14);
         item.marker.openPopup();
+        const mapEl = document.getElementById('map');
+        if (mapEl) {
+            mapEl.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 }
 
@@ -222,31 +259,33 @@ function updateSavedLandmarksUI() {
     const container = document.getElementById('saved-landmarks-list');
     if (!container) return;
 
-    const saved = JSON.parse(localStorage.getItem('floodguard_marked_locations') || '[]');
-    if (saved.length === 0) {
+    const items = Object.values(markedMarkerObjects);
+    if (items.length === 0) {
         container.innerHTML = `
-            <div style="background: #f8f9fa; padding: 1.5rem; text-align: center; border-radius: 8px; border: 1px dashed #ccc; color: #7f8c8d; grid-column: 1 / -1;">
-                <i class="fas fa-map-pin" style="font-size: 2rem; margin-bottom: 0.5rem; color: #bdc3c7;"></i>
-                <p style="margin: 0; font-size: 0.95rem;">No saved landmarks yet. Click anywhere on the map to pin and save a location landmark.</p>
+            <div style="grid-column: 1 / -1; background: #f8f9fa; border: 1px dashed #d6dbdf; border-radius: 8px; padding: 1.25rem; text-align: center; color: #7f8c8d; font-size: 0.9rem;">
+                <i class="fas fa-map-pin" style="color: #bdc3c7; font-size: 1.5rem; margin-bottom: 0.35rem; display: block;"></i>
+                No custom landmarks marked yet. Click anywhere on the map above to mark a location!
             </div>
         `;
         return;
     }
 
     let html = '';
-    saved.forEach(item => {
-        const titleText = item.name ? item.name : 'Saved Location Mark';
+    items.forEach((item, index) => {
+        const label = item.name ? item.name : `Marked Location #${index + 1}`;
         html += `
-            <div style="background: white; border-radius: 8px; padding: 1rem; border-left: 5px solid #e74c3c; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; justify-content: space-between;">
+            <div style="background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border-left: 4px solid #9b59b6; display: flex; flex-direction: column; justify-content: space-between;">
                 <div>
-                    <h4 style="margin: 0 0 0.3rem 0; color: #2c3e50; font-size: 1.05rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span><i class="fas fa-map-marker-alt" style="color: #e74c3c; margin-right: 6px;"></i> ${escapeHtml(titleText)}</span>
-                    </h4>
-                    <p style="margin: 0 0 0.75rem 0; font-size: 0.85rem; color: #7f8c8d;">
-                        <i class="fas fa-globe"></i> ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}
-                    </p>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.35rem;">
+                        <h4 style="margin: 0; color: #2c3e50; font-size: 1rem; font-weight: 600;">
+                            <i class="fas fa-bookmark" style="color: #9b59b6; margin-right: 4px;"></i> ${escapeHtml(label)}
+                        </h4>
+                    </div>
+                    <div style="font-size: 0.8rem; color: #7f8c8d; margin-bottom: 0.75rem;">
+                        <i class="fas fa-compass"></i> ${item.lat.toFixed(4)}, ${item.lng.toFixed(4)}
+                    </div>
                 </div>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
                     <button onclick="showRoute(${item.lat}, ${item.lng})" style="background: #3498db; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px;">
                         <i class="fas fa-directions"></i> Get Directions
                     </button>
@@ -277,7 +316,7 @@ function loadSavedMarkedLocations() {
 }
 
 function clearAllMarkedLocations() {
-    if (confirm('Are you sure you want to remove all your location marks?')) {
+    if (window.confirm('Are you sure you want to remove all your location marks?')) {
         for (let id in markedMarkerObjects) {
             if (markedLocationsLayer) {
                 markedLocationsLayer.removeLayer(markedMarkerObjects[id].marker);
@@ -297,7 +336,7 @@ function initMap() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    // Create layer groups for different types of markers
+    // Layer groups for markers
     const hospitalLayer = L.layerGroup().addTo(map);
     const pharmacyLayer = L.layerGroup().addTo(map);
     const schoolLayer = L.layerGroup().addTo(map);
@@ -305,7 +344,6 @@ function initMap() {
     const landmarkLayer = L.layerGroup().addTo(map);
     markedLocationsLayer = L.layerGroup().addTo(map);
 
-    // Add layer control
     const baseMaps = {
         "OpenStreetMap": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -323,7 +361,6 @@ function initMap() {
 
     L.control.layers(baseMaps, overlayMaps).addTo(map);
 
-    // Load saved marked locations
     loadSavedMarkedLocations();
 
     // Map click handler to add location marks
@@ -338,35 +375,26 @@ function initMap() {
                 const userLat = position.coords.latitude;
                 const userLng = position.coords.longitude;
 
-                // Center map on user's location
                 map.setView([userLat, userLng], 12);
 
-                // Add user marker
                 userMarker = L.marker([userLat, userLng], {
                     icon: createUserIcon()
                 }).addTo(map).bindPopup('Your Location').openPopup();
 
-                // Load nearby places
                 loadNearbyPlaces(userLat, userLng, 'hospital', hospitalLayer);
                 loadNearbyPlaces(userLat, userLng, 'pharmacy', pharmacyLayer);
                 loadNearbyPlaces(userLat, userLng, 'school', schoolLayer);
-
-                // Add some demo landmarks
                 addDemoLandmarks(userLat, userLng, landmarkLayer);
-
-                // Check for alerts in the area
                 checkForAlerts(userLat, userLng, alertLayer);
             },
             function (error) {
-                console.error("Error getting location: ", error);
-                // Load some default data
+                console.warn("Geolocation permission error: ", error);
                 loadAlerts(alertLayer);
                 addDemoLandmarks(20.5937, 78.9629, landmarkLayer);
-            }
+            },
+            { timeout: 8000 }
         );
     } else {
-        console.log("Geolocation is not supported by this browser.");
-        // Load some default data
         loadAlerts(alertLayer);
         addDemoLandmarks(20.5937, 78.9629, landmarkLayer);
     }
@@ -377,92 +405,64 @@ function loadNearbyPlaces(lat, lng, type, layer) {
     fetch(`/api/nearby-places?lat=${lat}&lon=${lng}&type=${type}&radius=5000`)
         .then(response => response.json())
         .then(data => {
-            data.elements.forEach(element => {
-                let markerLat, markerLng;
+            if (data.elements && data.elements.length > 0) {
+                data.elements.forEach(element => {
+                    let markerLat, markerLng;
 
-                if (element.type === 'node') {
-                    markerLat = element.lat;
-                    markerLng = element.lon;
-                } else if (element.type === 'way' || element.type === 'relation') {
-                    markerLat = element.center.lat;
-                    markerLng = element.center.lon;
-                }
+                    if (element.type === 'node') {
+                        markerLat = element.lat;
+                        markerLng = element.lon;
+                    } else if (element.type === 'way' || element.type === 'relation') {
+                        markerLat = element.center.lat;
+                        markerLng = element.center.lon;
+                    }
 
-                let iconObj;
-                switch (type) {
-                    case 'hospital':
-                        iconObj = createHospitalIcon();
-                        break;
-                    case 'pharmacy':
-                        iconObj = createPharmacyIcon();
-                        break;
-                    case 'school':
-                        iconObj = createSchoolIcon();
-                        break;
-                    default:
-                        iconObj = createLandmarkIcon();
-                }
+                    if (!markerLat || !markerLng) return;
 
-                const marker = L.marker([markerLat, markerLng], { icon: iconObj });
+                    let iconObj;
+                    switch (type) {
+                        case 'hospital':
+                            iconObj = createHospitalIcon();
+                            break;
+                        case 'pharmacy':
+                            iconObj = createPharmacyIcon();
+                            break;
+                        case 'school':
+                            iconObj = createSchoolIcon();
+                            break;
+                        default:
+                            iconObj = createLandmarkIcon();
+                    }
 
-                let popupContent = `<b>${type.charAt(0).toUpperCase() + type.slice(1)}</b>`;
-                if (element.tags && element.tags.name) {
-                    popupContent = `<b>${element.tags.name}</b><br>${popupContent}`;
-                }
+                    const marker = L.marker([markerLat, markerLng], { icon: iconObj });
+                    let popupContent = `<b>${escapeHtml(type.charAt(0).toUpperCase() + type.slice(1))}</b>`;
+                    if (element.tags && element.tags.name) {
+                        popupContent = `<b>${escapeHtml(element.tags.name)}</b><br>${popupContent}`;
+                    }
+                    popupContent += `<br><button onclick="showRoute(${markerLat}, ${markerLng})" class="route-btn">Get Directions</button>`;
 
-                // Add route button to popup
-                popupContent += `<br><button onclick="showRoute(${markerLat}, ${markerLng})" class="route-btn">Get Directions</button>`;
-
-                marker.bindPopup(popupContent);
-                marker.addTo(layer);
-                placeMarkers.push(marker);
-            });
+                    marker.bindPopup(popupContent);
+                    marker.addTo(layer);
+                    placeMarkers.push(marker);
+                });
+            } else {
+                // No fabricated fallback data — just report that nothing was found nearby.
+                console.info(`No ${type} results returned near this location.`);
+            }
         })
         .catch(error => {
             console.error('Error fetching nearby places:', error);
-            // Add some demo markers for demonstration
-            addDemoPlaces(lat, lng, type, layer);
+            showMapNotice('Could not load nearby emergency places (external map service unavailable). Only alerts and your own marks are shown.', true);
         });
-}
-
-// Add demo places for demonstration
-function addDemoPlaces(lat, lng, type, layer) {
-    for (let i = 0; i < 5; i++) {
-        const offsetLat = (Math.random() - 0.5) * 0.1;
-        const offsetLng = (Math.random() - 0.5) * 0.1;
-
-        let iconObj;
-        let placeName;
-
-        switch (type) {
-            case 'hospital':
-                iconObj = createHospitalIcon();
-                placeName = `Hospital ${i + 1}`;
-                break;
-            case 'pharmacy':
-                iconObj = createPharmacyIcon();
-                placeName = `Pharmacy ${i + 1}`;
-                break;
-            case 'school':
-                iconObj = createSchoolIcon();
-                placeName = `School / Shelter ${i + 1}`;
-                break;
-        }
-
-        const marker = L.marker([lat + offsetLat, lng + offsetLng], { icon: iconObj }).addTo(layer);
-
-        marker.bindPopup(`<b>${placeName}</b><br>${type.charAt(0).toUpperCase() + type.slice(1)}<br><button onclick="showRoute(${lat + offsetLat}, ${lng + offsetLng})" class="route-btn">Get Directions</button>`);
-        placeMarkers.push(marker);
-    }
 }
 
 // Add demo landmarks
 function addDemoLandmarks(lat, lng, layer) {
     const landmarks = [
-        { name: 'City Center', lat: lat + 0.01, lng: lng + 0.01, type: 'landmark' },
-        { name: 'Main Bridge', lat: lat + 0.02, lng: lng - 0.01, type: 'landmark' },
-        { name: 'Central Park', lat: lat - 0.01, lng: lng + 0.02, type: 'landmark' },
-        { name: 'River Front', lat: lat - 0.02, lng: lng - 0.02, type: 'landmark' }
+        { name: 'City Center Hub', lat: lat + 0.012, lng: lng + 0.012, type: 'landmark' },
+        { name: 'Main River Bridge', lat: lat + 0.022, lng: lng - 0.014, type: 'landmark' },
+        { name: 'Central Relief Grounds', lat: lat - 0.015, lng: lng + 0.018, type: 'landmark' },
+        { name: 'Coastal Watch Point', lat: lat - 0.024, lng: lng - 0.022, type: 'landmark' }
     ];
 
     landmarks.forEach(landmark => {
@@ -470,33 +470,46 @@ function addDemoLandmarks(lat, lng, layer) {
             icon: createLandmarkIcon()
         }).addTo(layer);
 
-        marker.bindPopup(`<b>${landmark.name}</b><br>Landmark<br><button onclick="showRoute(${landmark.lat}, ${landmark.lng})" class="route-btn">Get Directions</button>`);
+        marker.bindPopup(`<b>${escapeHtml(landmark.name)}</b><br><span style="color:#7f8c8d; font-size:0.8rem;">[Landmark]</span><br><button onclick="showRoute(${landmark.lat}, ${landmark.lng})" class="route-btn">Get Directions</button>`);
         placeMarkers.push(marker);
     });
 }
 
 // Show route to a location
 function showRoute(lat, lng) {
+    if (typeof L.Routing === 'undefined' || !L.Routing.control) {
+        window.alert('The routing system is currently loading. Please try clicking Get Directions again in a few seconds.');
+        return;
+    }
+
     if (routingControl) {
-        map.removeControl(routingControl);
+        try {
+            map.removeControl(routingControl);
+        } catch (e) {
+            console.warn('Error clearing previous route control:', e);
+        }
     }
 
     const drawRouteFromUser = (userLat, userLng) => {
-        routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(userLat, userLng),
-                L.latLng(lat, lng)
-            ],
-            routeWhileDragging: true,
-            lineOptions: {
-                styles: [{ color: '#3498db', weight: 5 }]
-            }
-        }).addTo(map);
+        try {
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(userLat, userLng),
+                    L.latLng(lat, lng)
+                ],
+                routeWhileDragging: false,
+                lineOptions: {
+                    styles: [{ color: '#3498db', weight: 5 }]
+                }
+            }).addTo(map);
 
-        // Scroll smooth to map container if needed
-        const mapEl = document.getElementById('map');
-        if (mapEl) {
-            mapEl.scrollIntoView({ behavior: 'smooth' });
+            const mapEl = document.getElementById('map');
+            if (mapEl) {
+                mapEl.scrollIntoView({ behavior: 'smooth' });
+            }
+        } catch (err) {
+            console.error('Error drawing route:', err);
+            window.alert('Unable to generate map route at this moment.');
         }
     };
 
@@ -514,130 +527,95 @@ function showRoute(lat, lng) {
                 drawRouteFromUser(userLat, userLng);
             },
             function (error) {
-                alert('Please allow location access in your browser to calculate directions.');
+                window.alert('Please allow browser location access so we can draw driving directions from your location.');
             }
         );
     } else {
-        alert('Geolocation is not supported by your browser.');
+        window.alert('Geolocation is not supported by your browser.');
     }
 }
 
-// Load alerts from the server
+// Load alerts from server
 function loadAlerts(layer) {
     fetch('/api/alerts')
         .then(response => response.json())
         .then(alerts => {
-            alerts.forEach(alert => {
-                addAlertMarker(alert, layer);
-            });
+            if (alerts && alerts.length > 0) {
+                alerts.forEach(alertItem => {
+                    addAlertMarker(alertItem, layer);
+                });
+            }
+            // No alerts is a valid state — do not fabricate demo alerts.
         })
         .catch(error => {
             console.error('Error fetching alerts:', error);
-            // Add some demo alerts for demonstration
-            addDemoAlerts(layer);
+            showMapNotice('Could not load emergency alerts right now. Please try again shortly.', true);
         });
 }
 
 // Add an alert marker to the map
-function addAlertMarker(alert, layer) {
-    const alertIcon = createAlertIcon(alert.severity);
-
-    const marker = L.marker([alert.latitude, alert.longitude], { icon: alertIcon }).addTo(layer);
+function addAlertMarker(alertItem, layer) {
+    const alertIcon = createAlertIcon(alertItem.severity);
+    const marker = L.marker([alertItem.latitude, alertItem.longitude], { icon: alertIcon }).addTo(layer);
 
     const popupContent = `
-        <b>${alert.type.toUpperCase()} ALERT: ${alert.severity.toUpperCase()}</b><br>
-        <b>Location:</b> ${alert.location}<br>
-        <b>Description:</b> ${alert.description}<br>
-        <b>Time:</b> ${new Date(alert.created_at).toLocaleString()}
+        <b>${escapeHtml((alertItem.type || 'EMERGENCY').toUpperCase())} ALERT: ${escapeHtml((alertItem.severity || 'INFO').toUpperCase())}</b><br>
+        <b>Location:</b> ${escapeHtml(alertItem.location || 'Your Region')}<br>
+        <b>Description:</b> ${escapeHtml(alertItem.description || '')}<br>
+        <b>Time:</b> ${alertItem.created_at ? new Date(alertItem.created_at).toLocaleString() : 'Active'}
     `;
 
     marker.bindPopup(popupContent);
     alertMarkers.push(marker);
 }
 
-// Add demo alerts for demonstration
-function addDemoAlerts(layer) {
-    const demoAlerts = [
-        {
-            type: 'flood',
-            location: 'Kerala, Kochi',
-            severity: 'warning',
-            description: 'Heavy rainfall expected in the next 24 hours',
-            latitude: 9.9312,
-            longitude: 76.2673,
-            created_at: new Date()
-        },
-        {
-            type: 'flood',
-            location: 'Assam, Guwahati',
-            severity: 'critical',
-            description: 'River water levels rising rapidly',
-            latitude: 26.1445,
-            longitude: 91.7362,
-            created_at: new Date()
-        },
-        {
-            type: 'cyclone',
-            location: 'Odisha, Bhubaneswar',
-            severity: 'info',
-            description: 'Cyclone watch issued for coastal areas',
-            latitude: 20.2961,
-            longitude: 85.8245,
-            created_at: new Date()
-        }
-    ];
-
-    demoAlerts.forEach(alert => {
-        addAlertMarker(alert, layer);
-    });
-}
-
-// Check for alerts near the user's location
+// Check for alerts near user
 function checkForAlerts(lat, lng, layer) {
     fetch('/api/alerts')
         .then(response => response.json())
         .then(alerts => {
-            alerts.forEach(alert => {
-                // Simple distance calculation (for demo purposes)
-                const distance = Math.sqrt(
-                    Math.pow(alert.latitude - lat, 2) +
-                    Math.pow(alert.longitude - lng, 2)
-                ) * 100; // Rough approximation in km
+            if (alerts && Array.isArray(alerts)) {
+                alerts.forEach(alertItem => {
+                    if (typeof alertItem.latitude !== 'number' || typeof alertItem.longitude !== 'number') {
+                        return;
+                    }
+                    const distance = haversineKm(lat, lng, alertItem.latitude, alertItem.longitude);
 
-                if (distance < 50) { // Within 50 km
-                    addAlertMarker(alert, layer);
-                    showAlertNotification(alert);
-                }
-            });
+                    if (distance < 50) {
+                        addAlertMarker(alertItem, layer);
+                        showAlertNotification(alertItem);
+                    }
+                });
+            }
         })
         .catch(error => {
             console.error('Error checking for alerts:', error);
         });
 }
 
-// Show alert notification
-function showAlertNotification(alert) {
+// Show alert notification safely (renamed parameter from alert to alertData to avoid shadowing window.alert)
+function showAlertNotification(alertData) {
     if ("Notification" in window && Notification.permission === "granted") {
-        new Notification(`FloodGuard Alert: ${alert.type.toUpperCase()} in ${alert.location}`, {
-            body: alert.description,
-            icon: '/static/images/logo.png'
-        });
-    } else {
-        // Fallback to browser alert
-        alert(`FLOODGUARD ALERT: ${alert.type.toUpperCase()} in ${alert.location}\nSeverity: ${alert.severity.toUpperCase()}\n\n${alert.description}`);
+        try {
+            new Notification(`CrisisAware Alert: ${String(alertData.type || 'Warning').toUpperCase()} in ${alertData.location || 'Your Area'}`, {
+                body: alertData.description || 'Emergency weather alert active.'
+            });
+        } catch (e) {
+            console.warn('Could not trigger HTML5 notification:', e);
+        }
     }
 }
 
 // Request notification permission
-if ("Notification" in window) {
+if ("Notification" in window && Notification.permission === "default") {
     Notification.requestPermission();
 }
 
-// Initialize map when page loads
+// Initialize map on DOM load
 document.addEventListener('DOMContentLoaded', function () {
     initMap();
 
-    // Add routing plugin
+    // Dynamically load leaflet-routing-machine
     const link = document.createElement('link');
     link.rel = 'stylesheet';
     link.href = 'https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css';
@@ -646,7 +624,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js';
     script.onload = function () {
-        console.log('Routing plugin loaded');
+        isRoutingReady = true;
+        console.log('Leaflet Routing Machine ready.');
+    };
+    script.onerror = function () {
+        console.warn('Failed to load Leaflet Routing Machine plugin.');
     };
     document.head.appendChild(script);
-}); 
+});

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="page-wrap">
+    <div class="page-header">
+        <div>
+            <h1><i class="fas fa-user-shield"></i> Admin dashboard</h1>
+            <p class="muted">Review NGO applications. There is exactly one administrator on this platform (count: {{ admin_count }}).</p>
+        </div>
+    </div>
+
+    <h2 class="section-title">NGO applications</h2>
+    {% if applications %}
+    <div class="card-grid">
+        {% for app in applications %}
+        {% set status_lower = (app.status or 'pending')|lower %}
+        <article class="panel-card">
+            <div class="panel-card-header">
+                <div>
+                    <h3>{{ app.org_name }}</h3>
+                    <small class="muted">{{ app.contact_person }} · {{ app.email }}</small>
+                </div>
+                <span class="status-pill status-{{ status_lower }}">{{ status_lower }}</span>
+            </div>
+            <ul class="detail-list">
+                <li><strong>Registration ID:</strong> {{ app.registration_no }}</li>
+                <li><strong>Contact:</strong> {{ app.contact_person }}{% if app.designation %} ({{ app.designation }}){% endif %}</li>
+                <li><strong>Phone:</strong> {{ app.phone }}</li>
+                <li><strong>Location:</strong> {{ app.city }}, {{ app.state }}{% if app.pincode %} — {{ app.pincode }}{% endif %}</li>
+                <li><strong>Address:</strong> {{ app.address }}</li>
+                <li><strong>Areas:</strong> {{ app.areas_of_operation }}</li>
+                {% if app.website %}<li><strong>Website:</strong> {{ app.website }}</li>{% endif %}
+                <li><strong>Description:</strong> {{ app.description }}</li>
+                <li><strong>Submitted:</strong> {{ app.created_at }}</li>
+                {% if app.rejection_reason %}<li><strong>Rejection reason:</strong> {{ app.rejection_reason }}</li>{% endif %}
+            </ul>
+            <div class="action-row">
+                {% if status_lower == 'pending' %}
+                <form action="{{ url_for('admin_approve_application', app_id=app.id) }}" method="POST">
+                    <button type="submit" class="btn btn-success">Approve &amp; email login</button>
+                </form>
+                <form action="{{ url_for('admin_reject_application', app_id=app.id) }}" method="POST" class="reject-form">
+                    <input type="text" name="reason" class="form-control" placeholder="Rejection reason (required)" required>
+                    <button type="submit" class="btn btn-danger">Reject &amp; email</button>
+                </form>
+                {% elif status_lower == 'approved' %}
+                <form action="{{ url_for('admin_resend_credentials', app_id=app.id) }}" method="POST">
+                    <button type="submit" class="btn">Resend credentials</button>
+                </form>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">No NGO applications yet.</div>
+    {% endif %}
+
+    <h2 class="section-title">Registered NGOs</h2>
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ngo in ngos %}
+                <tr>
+                    <td>{{ ngo.name }}</td>
+                    <td>{{ ngo.email }}</td>
+                    <td>{{ ngo.phone }}</td>
+                    <td>{{ ngo.status or 'active' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4">No NGOs found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

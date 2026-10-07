@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="form-container">
+<div class="form-container form-container-wide">
     <h1>Register</h1>
-    
+
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
             {% for category, message in messages %}
@@ -11,34 +11,115 @@
             {% endfor %}
         {% endif %}
     {% endwith %}
-    
-    <form action="{{ url_for('register') }}" method="POST">
-        <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" class="form-control" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" class="form-control" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" class="form-control" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="user_type">Account Type</label>
-            <select id="user_type" name="user_type" class="form-control" required>
-                <option value="user">General User</option>
-                <option value="ngo">NGO Representative</option>
-            </select>
-        </div>
-        
-        <button type="submit" class="btn">Register</button>
-    </form>
-    
-    <p style="margin-top: 1.5rem;">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+
+    <div class="form-group">
+        <label for="account_type">I am registering as</label>
+        <select id="account_type" class="form-control" onchange="toggleAccountType(this.value)">
+            <option value="user">Individual / Normal user</option>
+            <option value="ngo">NGO / Organization</option>
+        </select>
+    </div>
+
+    <!-- Normal user registration -->
+    <div id="user-form">
+        <form action="{{ url_for('register') }}" method="POST">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" class="form-control" minlength="8" required>
+            </div>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+            </div>
+            <input type="hidden" name="user_type" value="user">
+            <button type="submit" class="btn">Register</button>
+        </form>
+        <p class="form-footer-note">Already have an account? <a href="{{ url_for('login') }}">Login here</a></p>
+    </div>
+
+    <!-- NGO application (only visible when NGO is selected) -->
+    <div id="ngo-form" style="display: none;">
+        <p class="muted">NGO accounts are created only after administrator approval. Submitting this form stores a
+            <strong>pending</strong> application — you will not receive login credentials until it is approved.</p>
+        <form action="{{ url_for('ngo_register') }}" method="POST">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="org_name">Organization name</label>
+                    <input type="text" id="org_name" name="org_name" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="registration_no">Registration / legal ID</label>
+                    <input type="text" id="registration_no" name="registration_no" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="contact_person">Contact person</label>
+                    <input type="text" id="contact_person" name="contact_person" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="designation">Designation</label>
+                    <input type="text" id="designation" name="designation" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="ngo_email">Official email</label>
+                    <input type="email" id="ngo_email" name="email" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="ngo_phone">Phone number</label>
+                    <input type="tel" id="ngo_phone" name="phone" class="form-control" pattern="[0-9]{10}" maxlength="10" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label for="city">City</label>
+                    <input type="text" id="city" name="city" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="state">State</label>
+                    <input type="text" id="state" name="state" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label for="pincode">Pincode</label>
+                    <input type="text" id="pincode" name="pincode" class="form-control" pattern="[0-9]{6}" maxlength="6" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label for="website">Website (optional)</label>
+                    <input type="url" id="website" name="website" class="form-control" placeholder="https://">
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="address">Full address</label>
+                <textarea id="address" name="address" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="areas_of_operation">Areas of operation</label>
+                <input type="text" id="areas_of_operation" name="areas_of_operation" class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="description">Mission / description</label>
+                <textarea id="description" name="description" class="form-control" rows="4"></textarea>
+            </div>
+            <button type="submit" class="btn">Submit NGO application</button>
+        </form>
+        <p class="form-footer-note">Prefer the full page? <a href="{{ url_for('ngo_register') }}">Open the NGO application form</a></p>
+    </div>
 </div>
+
+<script>
+    function toggleAccountType(value) {
+        var isNgo = value === 'ngo';
+        document.getElementById('user-form').style.display = isNgo ? 'none' : 'block';
+        document.getElementById('ngo-form').style.display = isNgo ? 'block' : 'none';
+
+        // Required validation should only apply to the visible form
+        document.querySelectorAll('#user-form input').forEach(function (el) {
+            if (el.type !== 'hidden') { el.required = !isNgo; }
+        });
+        document.querySelectorAll('#ngo-form input, #ngo-form textarea').forEach(function (el) {
+            if (el.type === 'url') { el.required = false; }
+            else { el.required = isNgo; }
+        });
+    }
+</script>
 {% endblock %}

@@ -1,16 +1,20 @@
 # CrisisAware - Disaster Response & Volunteer Management System
 
-CrisisAware is a Python Flask web application providing real-time emergency weather alerts, interactive mapping for emergency facilities, and an NGO volunteer management workflow with pre-filled Gmail notification integration.
+CrisisAware is a Python + Flask web application designed for disaster preparedness, real-time weather alerts, interactive emergency mapping, and NGO volunteer recruitment workflows with administrator-approved NGO onboarding and Gmail SMTP notifications. Deployment target is Vercel.
 
 ---
 
 ## 🚀 Features
 
-- **Nearby Weather Alerts**: Displays active emergency alerts within a customizable radius using the Open-Meteo & NWS API.
-- **Interactive Emergency Map**: Real-time Leaflet map displaying nearby hospitals, pharmacies, emergency shelters, and custom user pins with routing/directions.
-- **Volunteer Management System**: Dedicated NGO dashboard allowing organizers to review, Accept, Reject, or Contact volunteer applicants.
-- **Gmail Compose Integration**: Pre-fills recipient, subject, and body in Gmail (`https://mail.google.com/mail/?view=cm&fs=1...`) for safe manual review without exposing SMTP credentials.
-- **User Authentication**: Secure password-hashed login system for users and NGO emergency response administrators.
+- **Nearby Weather Alerts**: Fetches real-time weather advisories from Open-Meteo (with local caching and distance-based filtering) combined with regional disaster alerts from the emergency database.
+- **Interactive Emergency Map**: Leaflet.js-powered map displaying nearby hospitals, pharmacies, emergency shelters/schools (via OpenStreetMap Overpass API with reliable fallbacks), custom user location pins, and turn-by-turn routing directions.
+- **Volunteer Management System**: Volunteer application form with client-side & server-side validation.
+- **NGO Application & Approval Workflow**: Public NGO registration stores a **pending** application (no login is created). A single administrator reviews applications at `/admin/dashboard`, and on approval the system creates the NGO record + login account, generates a unique login ID and a secure temporary password (via Python `secrets`), and emails the credentials. Rejection requires a reason. Administrators can resend credentials without creating duplicate accounts.
+- **NGO Role-Based Dashboard**: Dedicated portal protected by strict server-side authentication and role authorization (`user_type == 'ngo'`), allowing coordinators to review, Accept, Reject, and Contact only their own NGO's volunteers.
+- **Gmail SMTP Notifications**: Real transactional email via Python `smtplib`/`email` (no extra dependencies) for application-received, approval (with login ID, temporary password and login URL), rejection, credential-resend, and admin new-application notifications. Credentials are read only from environment variables and never exposed in source or frontend. If SMTP is not configured, emails are skipped gracefully and the workflow still functions.
+- **Emergency Helplines Directory**: Database-backed emergency contact directory accessible on the resources page and via REST API.
+- **AI Safety Assistant**: Optional Gemini AI chatbot providing practical disaster preparedness advice with graceful fallback when unconfigured.
+- **Security & Password Hashing**: Werkzeug-powered password hashing (`scrypt`/`pbkdf2`), parameterized SQL queries, and secure session management.
 
 ---
 
@@ -41,66 +45,66 @@ Copy `.env.example` to `.env`:
 ```bash
 cp .env.example .env
 ```
-Edit `.env` and set your configuration variables:
+Configure `.env`:
 ```env
-SECRET_KEY=a_strong_random_secret_key_here
+SECRET_KEY=your_secure_random_secret_key
 FLASK_DEBUG=True
 ALERT_RADIUS_KM=50
 DATABASE=floodguard.db
-GEMINI_API_KEY=optional_gemini_api_key
+GEMINI_API_KEY=your_gemini_api_key_optional
+
+# Exactly one administrator (created on startup if missing; password is hashed)
+ADMIN_USERNAME=admin
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=change-this-admin-password
+
+# Gmail SMTP (MAIL_PASSWORD must be a Google App Password, not your normal password)
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your_gmail_address@gmail.com
+MAIL_PASSWORD=your_gmail_app_password
+MAIL_DEFAULT_SENDER=your_gmail_address@gmail.com
 ```
 
 ### 5. Run the Local Server
 ```bash
 python app.py
 ```
-Open your browser and navigate to `http://127.0.0.1:5000`.
+Open your browser at `http://127.0.0.1:5000`.
 
 ---
 
-## 🌐 Production Deployment Guides
+## 🌐 Production & Vercel Deployment
 
-### Option A: Vercel Deployment (Serverless)
+### Serverless Storage & Database Notes
+- **Vercel Serverless Architecture**: Vercel functions execute in an ephemeral filesystem environment. For local demo/development, the SQLite database is automatically copied to `/tmp/floodguard.db` for write operations.
+- **Production Database**: For permanent data persistence across container recycles, configure a hosted PostgreSQL database (e.g. Supabase, Neon, or Vercel Postgres) via `DATABASE_URL`.
 
-1. Push your repository to GitHub:
+### Deploying to Vercel
+1. Push your repository to GitHub (ensure `.env` is listed in `.gitignore`):
    ```bash
    git add .
-   git commit -m "Configure Vercel deployment"
+   git commit -m "Production deployment release"
    git push origin main
    ```
-2. Log in to [Vercel.com](https://vercel.com) and click **Add New** → **Project**.
-3. Import your GitHub repository.
-4. Framework Preset: **Other** (Vercel automatically detects `vercel.json`).
-5. Configure Environment Variables under **Environment Variables**:
-   - `SECRET_KEY`: `<your-random-secret-key>`
-   - `FLASK_DEBUG`: `False`
-   - `ALERT_RADIUS_KM`: `50`
-   - `DATABASE`: `floodguard.db`
-6. Click **Deploy**. Vercel will deploy the application and provide a URL (e.g. `https://crisis-aware.vercel.app`).
-
-### Option B: Render Deployment (WSGI Service)
-
-1. Connect your repository on [Render.com](https://render.com/).
-2. Select **New Web Service**.
-3. Build Command: `pip install -r requirements.txt`
-4. Start Command: `gunicorn app:app`
-5. Add Environment Variables (`SECRET_KEY`, `FLASK_DEBUG`, etc.).
-6. Deploy to receive your public Render URL (`https://crisis-aware.onrender.com`).
+2. In [Vercel.com](https://vercel.com), click **Add New Project** and import the repository.
+3. Configure Environment Variables in the Vercel dashboard (`SECRET_KEY`, `FLASK_DEBUG=False`, `ALERT_RADIUS_KM`, `GEMINI_API_KEY`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, and the `MAIL_*` SMTP variables). Never commit real secrets to the repo.
+4. Click **Deploy**. Vercel will build using `api/index.py` and `@vercel/python`.
 
 ---
 
-## 🧪 Testing Live Deployment
+## 🧪 Automated Testing
 
-After deployment, test the following key paths:
-1. **Homepage**: `https://<your-app>.vercel.app/`
-2. **Interactive Map**: `https://<your-app>.vercel.app/map`
-3. **Weather Alerts**: `https://<your-app>.vercel.app/alerts`
-4. **NGO Login**: Log in with authorized credentials at `/login`.
-5. **Dashboard & Gmail Compose**: Navigate to `/ngo/dashboard`, click **Accept**, **Reject**, or **Contact** to verify that a pre-filled Gmail draft opens in a new tab.
+Execute the test suite covering authentication, authorization, volunteer workflows, Gmail URL generation, and API endpoints:
+```bash
+python test_crisis_aware.py
+```
 
 ---
 
 ## 🛡️ Security & Privacy
-- Secrets and API credentials are kept out of source code and loaded strictly via environment variables.
-- Passwords are securely hashed before database storage.
-- No automatic SMTP sending occurs; all outbound applicant emails require human review in Gmail.
+- **No Hard-Coded Credentials**: All secrets and API keys are loaded strictly from environment variables.
+- **Password Protection**: Passwords are never stored in plaintext; all user credentials use modern cryptographic hashing.
+- **Transactional Email via SMTP**: NGO application/approval/rejection/resend emails are sent through Gmail SMTP using a Google App Password loaded from environment variables. Credentials are never hard-coded, logged, or exposed to the frontend, and email failures never block the underlying workflow.
+- **Server-Side Authorization**: Every admin and NGO route re-checks the session role on the server (`admin_required` / `ngo_required`); hiding buttons is not relied upon for security. NGOs can only access their own data.

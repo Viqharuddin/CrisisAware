@@ -3,39 +3,61 @@
 
 {% block content %}
 <div style="max-width: 1000px; margin: 2rem auto; padding: 0 2rem;">
-    <h1>Disaster Preparedness Resources</h1>
+    <h1>Disaster Preparedness & Emergency Resources</h1>
     
+    <!-- Emergency Contacts Section -->
+    <div style="margin-top: 1.5rem; background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #e74c3c;">
+        <h2 style="margin-top: 0; color: #c0392b; display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-phone-alt"></i> Official Emergency Helplines
+        </h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            {% if contacts %}
+                {% for contact in contacts %}
+                <div style="background: #fdf2f2; border: 1px solid #fadbd8; border-radius: 6px; padding: 1rem;">
+                    <strong style="color: #2c3e50; font-size: 1rem; display: block; margin-bottom: 0.25rem;">{{ contact.name }}</strong>
+                    <div style="font-size: 1.1rem; color: #c0392b; font-weight: bold; margin: 0.25rem 0;">
+                        <i class="fas fa-phone"></i> {{ contact.phone }}
+                    </div>
+                    <small style="color: #7f8c8d;"><i class="fas fa-map-marker-alt"></i> {{ contact.location }}</small>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p style="color: #7f8c8d;">National Disaster Response Force: <strong>1070</strong> | Emergency: <strong>112</strong></p>
+            {% endif %}
+        </div>
+    </div>
+
     <div class="features-container" style="margin-top: 2rem;">
         <div class="feature-card">
-            <h3>Before a Flood</h3>
+            <h3>Before a Flood / Disaster</h3>
             <ul>
-                <li>Know your area's flood risk</li>
-                <li>Elevate critical utilities</li>
-                <li>Create a communication plan</li>
-                <li>Prepare an emergency kit</li>
-                <li>Sign up for alert systems</li>
+                <li>Know your area's flood and cyclone risk level</li>
+                <li>Elevate critical utilities and emergency supplies</li>
+                <li>Establish an emergency family communication plan</li>
+                <li>Prepare a portable 72-hour emergency kit</li>
+                <li>Subscribe to CrisisAware early warning alerts</li>
             </ul>
         </div>
         
         <div class="feature-card">
-            <h3>During a Flood</h3>
+            <h3>During a Disaster</h3>
             <ul>
-                <li>Move to higher ground immediately</li>
-                <li>Avoid walking through moving water</li>
-                <li>Do not drive in flooded areas</li>
-                <li>Stay tuned to emergency alerts</li>
-                <li>Follow evacuation orders</li>
+                <li>Move to designated high-ground shelters immediately</li>
+                <li>Avoid walking, swimming, or driving through moving water</li>
+                <li>Stay tuned to live weather advisories and local radio</li>
+                <li>Disconnect main electrical switches if advised</li>
+                <li>Follow official evacuation orders without delay</li>
             </ul>
         </div>
         
         <div class="feature-card">
-            <h3>After a Flood</h3>
+            <h3>After a Disaster</h3>
             <ul>
-                <li>Return home only when officials say it's safe</li>
-                <li>Avoid standing water</li>
-                <li>Inspect your home for damage</li>
-                <li>Document damage for insurance</li>
-                <li>Clean and disinfect everything</li>
+                <li>Return home only after authorities declare it safe</li>
+                <li>Avoid standing water and downed power lines</li>
+                <li>Inspect buildings for structural damage before entering</li>
+                <li>Document damages with photographs for relief assistance</li>
+                <li>Disinfect all water containers and living areas</li>
             </ul>
         </div>
     </div>
@@ -46,32 +68,32 @@
             <div>
                 <h3>Essential Supplies</h3>
                 <ul>
-                    <li>Water (1 gallon per person per day)</li>
+                    <li>Water (1 gallon per person per day for 3 days)</li>
                     <li>Non-perishable food (3-day supply)</li>
-                    <li>Manual can opener</li>
-                    <li>First aid kit</li>
-                    <li>Flashlight with extra batteries</li>
+                    <li>Manual can opener and multi-tool</li>
+                    <li>First aid kit and essential medications</li>
+                    <li>Flashlight with spare batteries</li>
                 </ul>
             </div>
             
             <div>
                 <h3>Important Documents</h3>
                 <ul>
-                    <li>Personal identification</li>
-                    <li>Insurance policies</li>
-                    <li>Bank account records</li>
-                    <li>Emergency contact list</li>
-                    <li>Map of your area</li>
+                    <li>Personal identification (Aadhaar, Passport, Voter ID)</li>
+                    <li>Insurance policies and property records</li>
+                    <li>Bank account and financial documents</li>
+                    <li>Emergency contact numbers list</li>
+                    <li>Physical local area evacuation map</li>
                 </ul>
             </div>
             
             <div>
-                <h3>Additional Items</h3>
+                <h3>Safety & Hygiene Items</h3>
                 <ul>
-                    <li>Prescription medications</li>
-                    <li>Sanitation supplies</li>
-                    <li>Multi-tool</li>
-                    <li>Cell phone with charger</li>
+                    <li>Prescription medications and medical supplies</li>
+                    <li>Hand sanitizer, soap, and sanitation supplies</li>
+                    <li>Sturdy boots, gloves, and protective gear</li>
+                    <li>Cell phone with power banks and charging cables</li>
                     <li>Cash in small denominations</li>
                 </ul>
             </div>
